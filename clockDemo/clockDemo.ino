@@ -2,7 +2,7 @@
 // 这个库不能直接下arduino上的(Arduino上的那个不是),需要从github上克隆
 // 找到Arduino安装目录下的libraries文件夹,然后 git clone git@github.com:msparks/arduino-ds1302.git
 
-#define INITTIME // 如果需要重新设定时间的话,就把这句话加上,否则就删掉这句话
+#define INITIME // 如果需要重新设定时间的话,就把这句话加上,否则就删掉这句话
 
 uint8_t hour = 0;
 uint8_t minute = 0; // 设定闹钟时间
