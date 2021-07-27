@@ -71,7 +71,7 @@ void loop()
     delay(2000);
     tft.fillScreen(ILI9341_BLACK);
 
-    String before1("");
+    String before1("v");
     String after(".bmp");
 
     for (int i = 1; i < 650; i++)
@@ -79,7 +79,7 @@ void loop()
         String number(i);
         String filename = before1 + number + after;
         // 多屏显示,效果不大好
-        stat = reader.drawBMP(filename.c_str(), tft, 0,0);
+        stat = reader.drawBMP(filename.c_str(), tft, 80,60);
         reader.printStatus(stat); // How'd we do?
     }
     tft.println("the end");
