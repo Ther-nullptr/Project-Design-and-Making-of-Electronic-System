@@ -51,7 +51,7 @@ void setup()
     // !以下的内容在正式启用的时候一定要关掉
     rtc.writeProtect(false);           //关闭写保护
     rtc.halt(false);                   //清除时钟停止标志
-    Time t(2021, 7, 24, 21, 0, 50, 7); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
+    Time t(2021, 7, 24, 23, 59, 50, 7); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
     rtc.time(t);                       //向DS1302设置时间数据
 
     tft.begin();
@@ -132,21 +132,21 @@ void loop()
         tft.setTextSize(3);
         tft.fillRect(75 + 3 * W_3, 120, 2 * W_3, H_3, ILI9341_BLACK); // 覆盖原有文字
         snprintf(time, sizeof(time), "%02d", tim.min);
-        tft.setCursor(75+ 3 * W_3,120);
+        tft.setCursor(75 + 3 * W_3, 120);
         tft.print(time);
         if (tim.min == 0) // 满小时
         {
             tft.setTextSize(3);
             tft.fillRect(75, 120, 2 * W_3, H_3, ILI9341_BLACK);
             snprintf(time, sizeof(time), "%02d", tim.hr);
-            tft.setCursor(75,120);
+            tft.setCursor(75, 120);
             tft.print(time);
             if (tim.hr == 0) // 满天
             {
                 tft.setTextSize(1);
-                tft.fillRect(10, 280, 5 * W_1, H_1, ILI9341_BLACK);
+                tft.fillRect(10, 280, 10 * W_1, H_1, ILI9341_BLACK);
                 snprintf(date, sizeof(date), "%04d-%02d-%02d", tim.yr, tim.mon, tim.date);
-                tft.setCursor(10,280);
+                tft.setCursor(10, 280);
                 tft.print(date);
                 getWeek(tim.day);
                 tft.fillRect(F_W - 3 * W_1 - 10, 280, 3 * W_1, H_1, ILI9341_BLACK);
