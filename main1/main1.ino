@@ -130,26 +130,26 @@ void loop()
     if (tim.min != last_min) // 检测到时间发生改变
     {
         tft.setTextSize(3);
-        tft.drawRect(75 + 3 * W_3, 120, 2 * W_3, H_3, ILI9341_BLACK); // 覆盖原有文字
+        tft.fillRect(75 + 3 * W_3, 120, 2 * W_3, H_3, ILI9341_BLACK); // 覆盖原有文字
         snprintf(time, sizeof(time), "%02d", tim.min);
         tft.setCursor(75+ 3 * W_3,120);
         tft.print(time);
         if (tim.min == 0) // 满小时
         {
             tft.setTextSize(3);
-            tft.drawRect(75, 120, 2 * W_3, H_3, ILI9341_BLACK);
+            tft.fillRect(75, 120, 2 * W_3, H_3, ILI9341_BLACK);
             snprintf(time, sizeof(time), "%02d", tim.hr);
             tft.setCursor(75,120);
             tft.print(time);
             if (tim.hr == 0) // 满天
             {
                 tft.setTextSize(1);
-                tft.drawRect(10, 280, 5 * W_1, H_1, ILI9341_BLACK);
+                tft.fillRect(10, 280, 5 * W_1, H_1, ILI9341_BLACK);
                 snprintf(date, sizeof(date), "%04d-%02d-%02d", tim.yr, tim.mon, tim.date);
                 tft.setCursor(10,280);
                 tft.print(date);
                 getWeek(tim.day);
-                tft.drawRect(F_W - 3 * W_1 - 10, 280, 3 * W_1, H_1, ILI9341_BLACK);
+                tft.fillRect(F_W - 3 * W_1 - 10, 280, 3 * W_1, H_1, ILI9341_BLACK);
                 tft.setCursor(F_W - 3 * W_1 - 10, 280);
                 tft.print(week);
             }
