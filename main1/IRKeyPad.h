@@ -1,3 +1,4 @@
+#pragma once
 #define UP 0xD7E84B1B
 #define DOWM 0x20FE4DBB
 #define LEFT 0xA3C8EDDB
@@ -14,3 +15,15 @@
 #define _7 0x32C6FDF7
 #define _8 0x1BC0157B
 #define _9 0x3EC3FC1B
+
+// 定义每一种字号的大小
+#define H_1 8
+#define W_1 6
+#define H_2 16
+#define W_2 12
+#define H_3 24
+#define W_3 18
+
+// 定义屏幕宽度和高度
+#define F_H 320
+#define F_W 240

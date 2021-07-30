@@ -1,0 +1,121 @@
+#pragma once
+#include "IRKeyPad.h"
+#include <Adafruit_ILI9341.h>
+
+/* 一些与主运行逻辑关系不大的函数将会被放到这里*/
+extern char *week;
+extern Adafruit_ILI9341 tft;
+extern bool is_clock;
+extern bool is_Wifi;
+
+void getWeek(uint16_t num)
+{
+    switch (num)
+    {
+    case 7:
+        week = "Sat";
+        break;
+
+    case 1:
+        week = "Sun";
+        break;
+
+    case 2:
+        week = "Mon";
+        break;
+
+    case 3:
+        week = "Tue";
+        break;
+
+    case 4:
+        week = "Wed";
+        break;
+
+    case 5:
+        week = "Thu";
+        break;
+
+    case 6:
+        week = "Fri";
+        break;
+    }
+}
+
+void PrintBase(uint8_t id) // 打印每个界面的共性物
+{
+    int color;
+    // 信号
+    if (is_Wifi)
+    {
+        color = ILI9341_GREEN;
+    }
+    else
+    {
+        color = ILI9341_RED;
+    }
+    tft.drawRect(5, 5, 2, 4, color);
+    tft.drawRect(9, 3, 2, 6, color);
+    tft.drawRect(13, 1, 2, 8, color);
+
+    // 钟表
+    if (is_clock)
+    {
+        color = ILI9341_GREEN;
+    }
+    else
+    {
+        color = ILI9341_RED;
+    }
+    tft.drawCircle(F_W - 6, 6, 4, color);
+    tft.drawLine(F_W - 6, 3, F_W - 6, 6, color);
+    tft.drawLine(F_W - 6, 6, F_W - 3, 6, color);
+
+    // 下标
+    tft.fillTriangle(230, 308, 230, 316, 234, 312, ILI9341_WHITE);
+    tft.fillTriangle(10, 308, 10, 316, 6, 312, ILI9341_WHITE);
+
+    tft.setTextSize(1);
+    tft.drawLine(0, 305, 240, 305, ILI9341_WHITE);
+    tft.setCursor(111, 308);
+    switch (id)
+    {
+    case 1:
+        tft.print("1/4");
+        break;
+
+    case 2:
+        tft.print("2/4");
+        break;
+
+    case 3:
+        tft.print("3/4");
+        break;
+
+    case 4:
+        tft.print("4/4");
+        break;
+    }
+
+    tft.setTextSize(3);
+    tft.setCursor(75, 20);
+    tft.setTextColor(ILI9341_WHITE);
+    switch (id)
+    {
+    case 1:
+        tft.print(F("START"));
+        break;
+
+    case 2:
+        tft.print(F("CLOCK"));
+        break;
+
+    case 3:
+        tft.print(F("MUSIC"));
+        break;
+
+    case 4:
+        tft.print(F("VIDEO"));
+        break;
+    }
+}
