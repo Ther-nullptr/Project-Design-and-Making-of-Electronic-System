@@ -9,6 +9,7 @@
 #include <SdFat.h>                // SD card & FAT filesystem library
 #include <Adafruit_SPIFlash.h>    // SPI / QSPI flash library
 #include <Adafruit_ImageReader.h> // Image-reading functions
+#include "IRKeyPad.h"
 
 // 定义每一种字号的大小
 #define H_1 8
@@ -71,7 +72,7 @@ void setup()
     */
 }
 
-void PrintTime(Time &tim)
+void PrintTime(Time &tim) // 打印初始界面
 {
     snprintf(date, sizeof(date), "%04d-%02d-%02d",
              tim.yr, tim.mon, tim.date);
@@ -82,10 +83,34 @@ void PrintTime(Time &tim)
     tft.setCursor(75, 120);
     tft.print(time);
     tft.setTextSize(1);
-    tft.setCursor(10, 280);
+    tft.setCursor(10, 290);
     tft.print(date);
-    tft.setCursor(F_W - 3 * W_1 - 10, 280);
+    tft.setCursor(F_W - 3 * W_1 - 10, 290);
     tft.print(week);
+
+    // 标题
+    tft.setTextSize(3);
+    tft.setCursor(75,20);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("START");
+
+    // 信号
+    tft.drawRect(5,5,2,4,ILI9341_RED);
+    tft.drawRect(9,3,2,6,ILI9341_RED);
+    tft.drawRect(13,1,2,8,ILI9341_RED);
+
+    // 钟表
+    tft.drawCircle(F_W-6,6,4,ILI9341_RED);
+    tft.drawLine(F_W-6,3,F_W-6,6,ILI9341_RED);
+    tft.drawLine(F_W-6,6,F_W-3,6,ILI9341_RED);
+
+    // 下标
+    tft.setTextSize(1);
+    tft.drawLine(0,305,240,305,ILI9341_WHITE);
+    tft.setCursor(111,308);
+    tft.print("1/4");
+    tft.fillTriangle(230,308,230,316,234,312,ILI9341_WHITE);
+
 }
 
 void getWeek(uint16_t num)
@@ -122,7 +147,7 @@ void getWeek(uint16_t num)
     }
 }
 
-void loop()
+void UI_1() // 一号界面,也是初始界面,显示时间
 {
     // 时刻检测时间，但不时刻在屏幕上刷新时间
     static uint16_t last_min = 0;
@@ -144,16 +169,108 @@ void loop()
             if (tim.hr == 0) // 满天
             {
                 tft.setTextSize(1);
-                tft.fillRect(10, 280, 10 * W_1, H_1, ILI9341_BLACK);
+                tft.fillRect(10, 290, 10 * W_1, H_1, ILI9341_BLACK);
                 snprintf(date, sizeof(date), "%04d-%02d-%02d", tim.yr, tim.mon, tim.date);
-                tft.setCursor(10, 280);
+                tft.setCursor(10, 290);
                 tft.print(date);
                 getWeek(tim.day);
-                tft.fillRect(F_W - 3 * W_1 - 10, 280, 3 * W_1, H_1, ILI9341_BLACK);
-                tft.setCursor(F_W - 3 * W_1 - 10, 280);
+                tft.fillRect(F_W - 3 * W_1 - 10, 290, 3 * W_1, H_1, ILI9341_BLACK);
+                tft.setCursor(F_W - 3 * W_1 - 10, 290);
                 tft.print(week);
             }
         }
     }
     last_min = tim.min; // 更新时间
+}
+
+void UI_2()
+{
+    tft.setTextSize(3);
+    tft.setCursor(75,20);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("CLOCK");
+    tft.setCursor(20,50);
+    tft.setTextColor(ILI9341_BLUE);
+    tft.print("SET CLOCK:");
+    tft.setCursor(20,170);
+    tft.setTextColor(ILI9341_GREEN);
+    tft.print("MY CLOCK:");
+    tft.setCursor(40,200);
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("07:00  music 1");
+
+    // 光标
+    tft.fillTriangle(10,57,10,65,14,61,ILI9341_WHITE);
+
+    // 信号
+    tft.drawRect(5,5,2,4,ILI9341_RED);
+    tft.drawRect(9,3,2,6,ILI9341_RED);
+    tft.drawRect(13,1,2,8,ILI9341_RED);
+
+    // 钟表
+    tft.drawCircle(F_W-6,6,4,ILI9341_RED);
+    tft.drawLine(F_W-6,3,F_W-6,6,ILI9341_RED);
+    tft.drawLine(F_W-6,6,F_W-3,6,ILI9341_RED);
+
+    // 下标
+    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.drawLine(0,305,240,305,ILI9341_WHITE);
+    tft.setCursor(111,308);
+    tft.print("2/4");
+    tft.fillTriangle(230,308,230,316,234,312,ILI9341_WHITE);
+    tft.fillTriangle(10,308,10,316,6,312,ILI9341_WHITE);
+
+
+}
+
+void UI_3()
+{
+    tft.setTextSize(3);
+    tft.setCursor(75,20);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("MUSIC");
+
+    // 信号
+    tft.drawRect(5,5,2,4,ILI9341_RED);
+    tft.drawRect(9,3,2,6,ILI9341_RED);
+    tft.drawRect(13,1,2,8,ILI9341_RED);
+
+    // 钟表
+    tft.drawCircle(F_W-6,6,4,ILI9341_RED);
+    tft.drawLine(F_W-6,3,F_W-6,6,ILI9341_RED);
+    tft.drawLine(F_W-6,6,F_W-3,6,ILI9341_RED);
+
+    // 下标
+    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.drawLine(0,305,240,305,ILI9341_WHITE);
+    tft.setCursor(111,308);
+    tft.print("3/4");
+    tft.fillTriangle(230,308,230,316,234,312,ILI9341_WHITE);
+    tft.fillTriangle(10,308,10,316,6,312,ILI9341_WHITE);
+
+    // 显示歌单
+    tft.setTextSize(2);
+    tft.setCursor(20,46);
+    tft.println("Bad Apple");
+    tft.setCursor(20,66);
+    tft.println("Two Tigers Like Dancing");
+
+    // 光标
+    tft.fillTriangle(10,49,10,57,14,53,ILI9341_WHITE);
+}
+
+
+void loop()
+{
+    delay(10000);
+    tft.fillScreen(ILI9341_BLACK);
+    UI_2();
+    delay(10000);
+    tft.fillScreen(ILI9341_BLACK);
+    UI_3();
+    delay(10000);
+
 }
