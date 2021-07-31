@@ -1,10 +1,11 @@
 #pragma once
-#define UP 0xD7E84B1B
-#define DOWM 0x20FE4DBB
-#define LEFT 0xA3C8EDDB
-#define RIGHT 0xE5CFBD7F
-#define BACK 0x97483BFB
-#define ENTER 0xF0C41643
+// 定义红外按钮对应的值
+#define _UP 0xD7E84B1B
+#define _DOWM 0x20FE4DBB
+#define _LEFT 0xA3C8EDDB
+#define _RIGHT 0xE5CFBD7F
+#define _BACK 0x97483BFB
+#define _ENTER 0xF0C41643
 #define _0 0xC101E57B
 #define _1 0x9716BE3F
 #define _2 0x3D9AE3F7
@@ -27,3 +28,12 @@
 // 定义屏幕宽度和高度
 #define F_H 320
 #define F_W 240
+#define CLEAR 255
+
+// 定义键盘上的其他数字
+#define UP 11
+#define DOWN 12
+#define LEFT 13
+#define RIGHT 14
+#define ENTER 15
+#define BACK 16

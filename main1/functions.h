@@ -78,6 +78,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     tft.setTextSize(1);
     tft.drawLine(0, 305, 240, 305, ILI9341_WHITE);
     tft.setCursor(111, 308);
+    tft.setTextColor(ILI9341_WHITE);
     switch (id)
     {
     case 1:
@@ -117,5 +118,17 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     case 4:
         tft.print(F("VIDEO"));
         break;
+    }
+}
+
+void PlayCursor(uint8_t status,int i,int color)
+{
+    if(status == 2)
+    {
+        tft.fillTriangle(10, 58+i*80, 10, 66+i*80, 14, 62+i*80, color);
+    }
+    else if (status == 3)
+    {
+        tft.fillTriangle(10, 29+i*20, 10, 37+i*20, 14, 33+i*20, color);
     }
 }
