@@ -32,5 +32,4 @@ void loop() {
     }
     irrecv.resume(); // Receive the next value
   }
-  delay(100);
 }

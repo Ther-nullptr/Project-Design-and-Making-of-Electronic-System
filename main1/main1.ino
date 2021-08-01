@@ -45,7 +45,7 @@ const int DAT = 24;
 const int CLK = 22;
 
 // TFT管脚定义
-const int SDIN = 4;
+const int SDIN = 53;
 const int sck = 5;
 const int sda = 6;
 const int cs = 7;
@@ -79,16 +79,17 @@ volatile uint8_t status = 1;
 // 控制程序第一次是否清屏
 bool flag = true;
 
-DS1302 rtc(RST, DAT, CLK); // 时钟模块初始化
-SdFat SD;                  // sd卡对象
-// Adafruit_ImageReader reader(SD); // 读取SD卡图片的对象
+DS1302 rtc(RST, DAT, CLK);       // 时钟模块初始化
+SdFat SD;                        // sd卡对象
+Adafruit_ImageReader reader(SD); // 读取SD卡图片的对象
+
 IRrecv irrecv(RECV_PIN); // 红外接收器
 decode_results results;  // 红外信号解码值
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(cs, dc, sda, sck, rst, blk);
 Adafruit_Keypad customKeypad = Adafruit_Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
-// Adafruit_Image img;
-// ImageReturnCode stat;
+Adafruit_Image img;
+ImageReturnCode stat;
 
 char date[20], time[10], *week;
 
@@ -103,7 +104,7 @@ void setup()
     tft.begin();
     tft.fillScreen(ILI9341_BLACK);
 
-    SD.begin(SDIN, SD_SCK_MHZ(25));
+    SD.begin(SDIN);
 
     Serial.begin(9600);
 
@@ -126,6 +127,7 @@ void PrintTime(Time &tim) // 打印初始界面
     snprintf(time, sizeof(time), "%02d:%02d",
              tim.hr, tim.min);
     getWeek(tim.day);
+    tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(3);
     tft.setCursor(75, 120);
     tft.print(time);
@@ -139,18 +141,29 @@ void PrintTime(Time &tim) // 打印初始界面
 void UI_1() // 一号界面,也是初始界面,显示时间
 {
     PrintBase(1);
+    uint8_t alarmHour = EEPROM.read(0);
+    uint8_t alarmMinute = EEPROM.read(1);
+    uint8_t alarmMusic = EEPROM.read(2);
     // 时刻检测时间，但不时刻在屏幕上刷新时间
     while (1)
     {
         static uint16_t last_min = 0;
         Time tim = rtc.time();
-        if (tim.hr == EEPROM.read(0) && tim.min == EEPROM.read(1)) //触发闹钟响铃1min
+        if (tim.hr == alarmHour && tim.min == alarmMinute) //触发闹钟响铃1min
         {
-            // TODO
+            tft.setCursor(36, 180);
+            tft.setTextColor(ILI9341_RED);
+            tft.print("Alarming!");
+            // TODO 播放音乐
+        }
+        else if (tim.hr == alarmHour && tim.min == alarmMinute + 1)
+        {
+            tft.fillRect(36, 180, 210, 25, ILI9341_BLACK);
         }
         if (tim.min != last_min) // 检测到时间发生改变
         {
             tft.setTextSize(3);
+            tft.setTextColor(ILI9341_WHITE);
             tft.fillRect(75 + 3 * W_3, 120, 2 * W_3, H_3, ILI9341_BLACK); // 覆盖原有文字
             snprintf(time, sizeof(time), "%02d", tim.min);
             tft.setCursor(75 + 3 * W_3, 120);
@@ -182,8 +195,6 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         if (customKeypad.available())
         {
             keypadEvent e = customKeypad.read();
-            Serial.println(e.bit.KEY);
-
             status = e.bit.KEY;
             if (status != 1)
             {
@@ -220,7 +231,7 @@ void UI_2()
     {
         is_clock = true;
         char clockString[25];
-        snprintf(clockString, sizeof(clockString), "%02d:%02d    music %d", EEPROM.read(0), EEPROM.read(1), EEPROM.read(2));
+        snprintf(clockString, sizeof(clockString), "%02d:%02d  music %d", EEPROM.read(0), EEPROM.read(1), EEPROM.read(2));
         tft.print(clockString);
     }
 
@@ -348,6 +359,7 @@ void UI_2()
                                 tft.setCursor(30, 110);
                                 tft.setTextColor(ILI9341_GREEN);
                                 tft.print(F("Success!"));
+                                is_clock = true;
                                 // 将闹钟信息写入EEPROM
                                 uint8_t hour = min(clockArray[0] * 10 + clockArray[1], 23);
                                 uint8_t minute = min(clockArray[2] * 10 + clockArray[3], 59);
@@ -390,7 +402,7 @@ void UI_2()
                     }
                 }
             }
-            else if (e.bit.KEY == 1 || e.bit.KEY == 3)
+            else if (e.bit.KEY == 1 || e.bit.KEY == 3 || e.bit.KEY == 4)
             {
                 status = e.bit.KEY;
                 goto Label2;
@@ -467,7 +479,7 @@ void UI_3()
                 delay(5000);
                 tft.fillRect(15, 245, 210, 34, ILI9341_BLACK);
             }
-            else if (e.bit.KEY == 1 || e.bit.KEY == 2)
+            else if (e.bit.KEY == 1 || e.bit.KEY == 2 || e.bit.KEY == 4)
             {
                 status = e.bit.KEY;
                 goto Label3;
@@ -540,11 +552,16 @@ void UI_4()
                 tft.setCursor(20, 250);
                 tft.setTextSize(3);
                 tft.print("Playing...");
-                // TODO 播放音乐的操作
+                // 播放"视频"
+                tft.fillScreen(ILI9341_BLACK);
+                PlayVideo(cursorPosition);
+                tft.setCursor(60 , 250);
+                tft.println("the end");
                 delay(5000);
                 tft.fillRect(15, 245, 210, 34, ILI9341_BLACK);
+                goto Label4;
             }
-            else if (e.bit.KEY == 1 || e.bit.KEY == 2)
+            else if (e.bit.KEY == 1 || e.bit.KEY == 2 || e.bit.KEY == 3)
             {
                 status = e.bit.KEY;
                 goto Label4;

@@ -16,14 +16,19 @@
 // Pin definitions for 2.4" TFT FeatherWing vary among boards...
 #define TFT_CS 9
 #define TFT_DC 10
+
+#ifdef UNO
 #define SD_CS 4
+#else
+#define SD_CS 53
+#endif
 
 #if defined(USE_SD_CARD)
 SdFat SD;                        // SD card filesystem
 Adafruit_ImageReader reader(SD); // Image-reader object, pass in SD filesys
 #endif
 
-const int SDIN = 4;
+const int SDIN = 53;
 const int blk = 10;
 const int sda = 6;
 const int rst = 9;
@@ -51,7 +56,7 @@ void setup(void)
     Serial.print(F("Initializing filesystem..."));
 #if defined(USE_SD_CARD)
     // SD card is pretty straightforward, a single call...
-    if (!SD.begin(SD_CS, SD_SCK_MHZ(25)))
+    if (!SD.begin(SD_CS))
     { // ESP32 requires 25 MHz limit
         Serial.println(F("SD begin() failed"));
         for (;;)

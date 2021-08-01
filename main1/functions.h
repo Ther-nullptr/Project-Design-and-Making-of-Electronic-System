@@ -3,10 +3,16 @@
 #include <Adafruit_ILI9341.h>
 
 /* 一些与主运行逻辑关系不大的函数将会被放到这里*/
+
 extern char *week;
 extern Adafruit_ILI9341 tft;
 extern bool is_clock;
 extern bool is_Wifi;
+extern ImageReturnCode stat;
+extern SdFat SD; 
+extern Adafruit_Keypad customKeypad;
+extern Adafruit_Image img;
+extern Adafruit_ImageReader reader;
 
 void getWeek(uint16_t num)
 {
@@ -121,14 +127,53 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     }
 }
 
-void PlayCursor(uint8_t status,int i,int color)
+void PlayCursor(uint8_t status, int i, int color)
 {
-    if(status == 2)
+    if (status == 2)
     {
-        tft.fillTriangle(10, 58+i*80, 10, 66+i*80, 14, 62+i*80, color);
+        tft.fillTriangle(10, 58 + i * 80, 10, 66 + i * 80, 14, 62 + i * 80, color);
     }
     else if (status == 3)
     {
-        tft.fillTriangle(10, 29+i*20, 10, 37+i*20, 14, 33+i*20, color);
+        tft.fillTriangle(10, 29 + i * 20, 10, 37 + i * 20, 14, 33 + i * 20, color);
+    }
+}
+
+void PlayVideo(uint8_t label)
+{
+    String before;
+    String after(".bmp");
+    String filename;
+
+    switch (label)
+    {
+    case 1:
+        before = "";
+        break;
+
+    case 2:
+        before = "T";
+        break;
+    }
+    int num = 1;
+    while (1)
+    {
+        filename = before + num + after;
+        stat = reader.drawBMP(filename.c_str(), tft, 0, 0);
+        if (stat != IMAGE_SUCCESS)
+        {
+            break;
+        }
+        // TODO 此处应有更好的优化方法:把esc设置为中断
+        customKeypad.tick();
+        if (customKeypad.available())
+        {
+            keypadEvent e = customKeypad.read();
+            if (e.bit.KEY == BACK && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                break;
+            }
+        }
+        num++;
     }
 }
