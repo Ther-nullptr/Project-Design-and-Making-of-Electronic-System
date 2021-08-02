@@ -12,6 +12,7 @@
 #include <Adafruit_ImageReader.h> // Image-reading functions
 #include <Adafruit_Keypad.h>
 #include <EEPROM.h>
+#include <TMRpcm.h>               //! 重要! 要在原库中加入 #define SDFAT(.h和.cpp)
 #include "IRKeyPad.h"
 
 /**********************0.宏定义**********************/
@@ -66,8 +67,11 @@ const int RST = 26;
 const int DAT = 24;
 const int CLK = 22;
 
-// TFT管脚定义
+// sd管脚定义
 const int SDIN = 53;
+// 50:miso 51:mosi 52:sck
+
+// TFT管脚定义
 const int sck = 5;
 const int sda = 6;
 const int cs = 7;
@@ -115,6 +119,7 @@ Adafruit_Image img;                                                             
 Adafruit_ImageReader reader(SD);                                                                // 图片读取器对象
 ImageReturnCode stat;                                                                           // 图片读取状态
 keypadEvent e;                                                                                  // 监测按键状态的对象
+TMRpcm tmrpcm;                                                                                  // 读取wav文件的对象
 
 // 时间字符串
 char date[20], time[10], *week;
@@ -138,6 +143,9 @@ void setup()
     irrecv.enableIRIn();
 
     customKeypad.begin();
+
+    tmrpcm.speakerPin = 46; // 初始化音乐播放管脚为11
+    tmrpcm.setVolume(3);
 
     // 屏幕主状态初始界面设置
     tft.setTextSize(1);
@@ -345,7 +353,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
         break;
 
     case 4:
-        tft.print(F("VIDEO"));
+        tft.print(F("IMAGE"));
         break;
     }
 }
@@ -435,10 +443,25 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         {
             TextSettings(ILI9341_RED, 3, 36, 180);
             tft.print("Alarming!");
+            if (!tmrpcm.isPlaying())
+            {
+                if (alarmMusic == 1)
+                {
+                    tmrpcm.play("demo.wav");
+                }
+                else if (alarmMusic == 2)
+                {
+                    tmrpcm.play("twotigers.wav");
+                }
+            }
             // TODO 播放音乐
         }
         else if (tim.hr == alarmHour && tim.min == alarmMinute + 1)
         {
+            if (tmrpcm.isPlaying())
+            {
+                tmrpcm.disable();
+            }
             tft.fillRect(36, 180, 210, 25, ILI9341_BLACK);
         }
         if (tim.min != last_min) // 检测到时间发生改变
@@ -473,7 +496,11 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         {
             e = customKeypad.read();
             status = e.bit.KEY;
-            if (willChangeStatus(status, 1))
+            if(e.bit.KEY == BACK && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                tmrpcm.disable(); // 按下back键即可关闭闹钟
+            }
+            else if (willChangeStatus(status, 1))
             {
                 goto Label1;
             }
@@ -712,9 +739,9 @@ void UI_3()
 
     // 显示歌单
     TextSettings(ILI9341_WHITE, 2, 20, 46);
-    tft.println(F("Bad Apple"));
+    tft.println(F("1.Bad Apple"));
     tft.setCursor(20, 66);
-    tft.println(F("Two Tigers"));
+    tft.println(F("2.Two Tigers"));
 
     // 光标
     uint8_t cursorPosition = 1;
@@ -765,8 +792,20 @@ void UI_3()
                 PlayCursor(3, cursorPosition, ILI9341_GREEN);
                 tft.drawRect(15, 245, 210, 34, ILI9341_GREEN);
                 TextSettings(ILI9341_WHITE, 3, 20, 250);
-                tft.print("Playing...");
+                tft.print("Loading...");
                 // TODO 播放音乐的操作
+                if(tmrpcm.isPlaying()) // 如果正在播放,
+                {
+                    tmrpcm.disable(); // 就关闭当前音乐
+                }
+                if (cursorPosition == 1)
+                {
+                    tmrpcm.play("demo.wav");
+                }
+                else if (cursorPosition == 2)
+                {
+                    tmrpcm.play("twotigers.wav");
+                }
                 delay(5000);
                 tft.fillRect(15, 245, 210, 34, ILI9341_BLACK);
             }
@@ -778,6 +817,7 @@ void UI_3()
         }
     }
 Label3:;
+tmrpcm.disable();//每次跳出该界面都会关闭音乐
 }
 
 // 播放视频的界面
