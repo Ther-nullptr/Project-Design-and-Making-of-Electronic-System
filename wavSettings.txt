@@ -1,0 +1,4 @@
+8bit
+16000 Hz
+mono
+unsigned 8-bit

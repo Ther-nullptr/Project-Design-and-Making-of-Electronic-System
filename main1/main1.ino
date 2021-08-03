@@ -13,7 +13,6 @@
 #include <Adafruit_Keypad.h>
 #include <EEPROM.h>
 #include <TMRpcm.h>               //! 重要! 要在原库中加入 #define SDFAT(.h和.cpp)
-#include "IRKeyPad.h"
 
 /**********************0.宏定义**********************/
 // 定义每一种字号的大小
@@ -102,11 +101,21 @@ bool is_clock = false; // 是否设定闹钟
 bool is_Wifi = false;  // 是否连接wifi
 
 // 设定系统颜色
-
+int colors[][4] = {
+    {ILI9341_BLACK,ILI9341_GREEN,ILI9341_RED,ILI9341_BLUE}, // default
+    {0x0000,0xafe5,0xffe0,0x07ff},                          // monokai
+    {0x6002,0x4cc0,0xc800,0x3334},                          // ubuntu
+    {0x0914,0x0400,0x8000,0x0010},                          // powershell
+    {0x314c,0x07f3,0xc49f,0xc786}};                         // cyberpunk
+uint8_t colorStatus = 1; // 默认为default
+int backgroundColor = colors[0][0];
+int successColor = colors [0][1];
+int warningColor = colors[0][2];
+int infoColor = colors[0][3];
 
 // 设定设备状态的状态值
 volatile uint8_t status = 1;
-const uint8_t idList[] = {1, 2, 3, 4};
+const uint8_t idList[] = {1, 2, 3, 4,5};
 
 // 控制程序第一次是否清屏
 bool flag = true;
@@ -137,7 +146,17 @@ void setup()
     rtc.time(t);                        //向DS1302设置时32*3间数据
 
     tft.begin();
-    tft.fillScreen(ILI9341_BLACK);
+    colorStatus = EEPROM.read(9);
+    if(colorStatus == 255)
+    {
+        colorStatus = 1;
+    }
+    int *p = *(colors+colorStatus-1);
+    backgroundColor = p[0];
+    successColor = p[1];
+    warningColor = p[2];
+    infoColor = p[3];
+    tft.fillScreen(backgroundColor);
 
     SD.begin(SDIN);
 
@@ -177,7 +196,7 @@ bool willChangeStatus(uint8_t val, uint8_t id)
     }
 
     // 2.按键值与当前界面不同且合法
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (val == idList[i])
         {
@@ -292,11 +311,11 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     // 画信号
     if (is_Wifi)
     {
-        color = ILI9341_GREEN;
+        color = successColor;
     }
     else
     {
-        color = ILI9341_RED;
+        color = warningColor;
     }
     tft.drawRect(5, 5, 2, 4, color);
     tft.drawRect(9, 3, 2, 6, color);
@@ -305,11 +324,11 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     // 画钟表,显示当前是否有闹钟工作
     if (is_clock)
     {
-        color = ILI9341_GREEN;
+        color = successColor;
     }
     else
     {
-        color = ILI9341_RED;
+        color = warningColor;
     }
     tft.drawCircle(F_W - 6, 6, 4, color);
     tft.drawLine(F_W - 6, 3, F_W - 6, 6, color);
@@ -320,24 +339,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     tft.fillTriangle(10, 308, 10, 316, 6, 312, ILI9341_WHITE);
     tft.drawLine(0, 305, 240, 305, ILI9341_WHITE);
     TextSettings(ILI9341_WHITE, 1, 111, 308);
-    switch (id)
-    {
-    case 1:
-        tft.print("1/4");
-        break;
-
-    case 2:
-        tft.print("2/4");
-        break;
-
-    case 3:
-        tft.print("3/4");
-        break;
-
-    case 4:
-        tft.print("4/4");
-        break;
-    }
+    tft.print(String(id)+"/5");
 
     // 画标题
     TextSettings(ILI9341_WHITE, 3, 75, 20);
@@ -357,6 +359,10 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
 
     case 4:
         tft.print(F("IMAGE"));
+        break;
+
+    case 5:
+        tft.print(F("COLOR"));
         break;
     }
 }
@@ -444,7 +450,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         Time tim = rtc.time();
         if (tim.hr == alarmHour && tim.min == alarmMinute) //触发闹钟响铃1min
         {
-            TextSettings(ILI9341_RED, 3, 36, 180);
+            TextSettings(warningColor, 3, 36, 180);
             tft.print("Alarming!");
             if (!tmrpcm.isPlaying())
             {
@@ -465,28 +471,28 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             {
                 tmrpcm.disable();
             }
-            tft.fillRect(36, 180, 210, 25, ILI9341_BLACK);
+            tft.fillRect(36, 180, 210, 25, backgroundColor);
         }
         if (tim.min != last_min) // 检测到时间发生改变
         {
-            tft.fillRect(75 + 3 * W_3, 120, 2 * W_3, H_3, ILI9341_BLACK); // 覆盖原有文字
+            tft.fillRect(75 + 3 * W_3, 120, 2 * W_3, H_3, backgroundColor); // 覆盖原有文字
             TextSettings(ILI9341_WHITE, 3, 75 + 3 * W_3, 120);
             snprintf(time, sizeof(time), "%02d", tim.min);
             tft.print(time);
             if (tim.min == 0) // 满小时
             {
-                tft.fillRect(75, 120, 2 * W_3, H_3, ILI9341_BLACK);
+                tft.fillRect(75, 120, 2 * W_3, H_3, backgroundColor);
                 TextSettings(ILI9341_WHITE, 3, 75, 120);
                 snprintf(time, sizeof(time), "%02d", tim.hr);
                 tft.print(time);
                 if (tim.hr == 0) // 满天
                 {
-                    tft.fillRect(10, 290, 10 * W_1, H_1, ILI9341_BLACK);
+                    tft.fillRect(10, 290, 10 * W_1, H_1, backgroundColor);
                     TextSettings(ILI9341_WHITE, 1, 10, 290);
                     snprintf(date, sizeof(date), "%04d-%02d-%02d", tim.yr, tim.mon, tim.date);
                     tft.print(date);
                     getWeek(tim.day);
-                    tft.fillRect(F_W - 3 * W_1 - 10, 290, 3 * W_1, H_1, ILI9341_BLACK);
+                    tft.fillRect(F_W - 3 * W_1 - 10, 290, 3 * W_1, H_1, backgroundColor);
                     TextSettings(ILI9341_WHITE, 1, F_W - 3 * W_1 - 10, 290);
                     tft.print(week);
                 }
@@ -515,13 +521,13 @@ Label1:;
 void UI_2() // 二号界面,闹钟的设置,删除和展示
 {
     PrintBase(2);
-    TextSettings(ILI9341_BLUE, 3, 20, 50);
+    TextSettings(infoColor, 3, 20, 50);
     tft.print(F("SET CLOCK"));
 
-    TextSettings(ILI9341_RED, 3, 20, 130);
+    TextSettings(warningColor, 3, 20, 130);
     tft.print(F("DEL CLOCK"));
 
-    TextSettings(ILI9341_GREEN, 3, 20, 210);
+    TextSettings(successColor, 3, 20, 210);
     tft.print(F("MY CLOCK"));
 
     TextSettings(ILI9341_WHITE, 2, 40, 240);
@@ -542,42 +548,6 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
     PlayCursor(2, cursorPosition, ILI9341_WHITE);
     while (1)
     {
-#ifdef IR
-        if (irrecv.decode(&results))
-        {
-            if (results.value == ENTER) // 设定闹钟
-            {
-
-                tft.setTextSize(3);
-                tft.setCursor(40, 90);
-                tft.print("00:00");
-                for (int i = 0; i < 4; i++)
-                {
-                    irrecv.resume();
-                    tft.drawLine(84 + i * W_3, 70, 84 + (i + 1) * W_3, 70, ILI9341_WHITE);
-
-                    while (!irrecv.decode(&results))
-                        ; // 一直等待直到收到红外信号
-                    // 找对应的字母值
-
-                    tft.drawLine(84 + i * W_3, 70, 84 + (i + 1) * W_3, 70, ILI9341_BLACK); // 覆盖原有的白线
-                }
-            }
-            else
-            {
-                if (results.value == _1)
-                {
-                    status = 1;
-                }
-                else if (results.value == _3)
-                {
-                    status = 3;
-                }
-                irrecv.resume();
-                break;
-            }
-        }
-#endif // IR
         customKeypad.tick();
         if (customKeypad.available())
         {
@@ -585,20 +555,20 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
             delay(10);
             if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(2, cursorPosition, ILI9341_BLACK);
+                PlayCursor(2, cursorPosition, backgroundColor);
                 cursorPosition = !cursorPosition;
                 PlayCursor(2, cursorPosition, ILI9341_WHITE);
             }
             else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(2, cursorPosition, ILI9341_BLACK);
+                PlayCursor(2, cursorPosition, backgroundColor);
                 cursorPosition = !cursorPosition;
                 PlayCursor(2, cursorPosition, ILI9341_WHITE);
             }
             else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
             {
             SetClock:;
-                PlayCursor(2, cursorPosition, ILI9341_GREEN);
+                PlayCursor(2, cursorPosition, successColor);
                 if (cursorPosition == 0) // 设定闹钟
                 {
                     TextSettings(ILI9341_WHITE, 1, 30, 80);
@@ -620,16 +590,16 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                                     clockArray[i] = e.bit.KEY;
                                     tft.setCursor(i * 8 + 112, 80);
                                     tft.print(e.bit.KEY);
-                                    tft.drawLine(i * 8 + 112, 90, i * 8 + 120, 90, ILI9341_BLACK);
+                                    tft.drawLine(i * 8 + 112, 90, i * 8 + 120, 90, backgroundColor);
                                     // 对闹钟合法性的判定
                                     if (i == 3)
                                     {
                                         if (clockArray[0] * 10 + clockArray[1] > 23 || clockArray[2] * 10 + clockArray[3] > 60)
                                         {
-                                            TextSettings(ILI9341_RED, 1, 30, 95);
+                                            TextSettings(warningColor, 1, 30, 95);
                                             tft.print("illegal time!");
                                             delay(2000);
-                                            tft.fillRect(30, 80, 200, 40, ILI9341_BLACK);
+                                            tft.fillRect(30, 80, 200, 40, backgroundColor);
                                             goto SetClock;
                                         }
                                     }
@@ -654,7 +624,7 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                                 clockArray[4] = e.bit.KEY;
                                 tft.setCursor(112, 95);
                                 tft.print(e.bit.KEY);
-                                tft.drawLine(112, 105, 120, 105, ILI9341_BLACK);
+                                tft.drawLine(112, 105, 120, 105, backgroundColor);
                                 break;
                             }
                         }
@@ -670,8 +640,8 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                             delay(10);
                             if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
                             {
-                                tft.fillRect(30, 110, 200, 7, ILI9341_BLACK);
-                                TextSettings(ILI9341_GREEN, 1, 30, 110);
+                                tft.fillRect(30, 110, 200, 7, backgroundColor);
+                                TextSettings(successColor, 1, 30, 110);
                                 tft.print(F("Success!"));
                                 delay(2000);
                                 // 将闹钟信息写入EEPROM
@@ -684,8 +654,8 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                                 // 打印闹钟时间
                                 is_clock = true;
                                 char clockString[25];
-                                tft.fillRect(30, 80, 200, 40, ILI9341_BLACK);
-                                tft.fillRect(40, 240, 200, 40, ILI9341_BLACK);
+                                tft.fillRect(30, 80, 200, 40, backgroundColor);
+                                tft.fillRect(40, 240, 200, 40, backgroundColor);
                                 TextSettings(ILI9341_WHITE, 2, 40, 240);
                                 snprintf(clockString, sizeof(clockString), "%02d:%02d  music %d", hour, minute, music);
                                 tft.print(clockString);
@@ -696,7 +666,7 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                 }
                 else // 删除闹钟
                 {
-                    TextSettings(ILI9341_RED, 1, 20, 160);
+                    TextSettings(warningColor, 1, 20, 160);
                     tft.println(F("This will delete all the clocks!"));
                     tft.setCursor(20, 170);
                     tft.println(F("Press Enter to continue."));
@@ -709,7 +679,7 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                             delay(10);
                             if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
                             {
-                                TextSettings(ILI9341_GREEN, 1, 20, 180);
+                                TextSettings(successColor, 1, 20, 180);
                                 tft.println(F("Success!"));
                                 delay(2000);
                                 for (uint8_t i = 0; i < 3; i++)
@@ -717,8 +687,8 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                                     EEPROM.write(i, 255);
                                 }
                                 is_clock = false;
-                                tft.fillRect(20, 160, 200, 30, ILI9341_BLACK);
-                                tft.fillRect(40, 240, 200, 20, ILI9341_BLACK);
+                                tft.fillRect(20, 160, 200, 30, backgroundColor);
+                                tft.fillRect(40, 240, 200, 20, backgroundColor);
                                 break;
                             }
                         }
@@ -751,28 +721,13 @@ void UI_3()
     PlayCursor(3, cursorPosition, ILI9341_WHITE);
     while (1)
     {
-#ifdef IR
-        if (irrecv.decode(&results))
-        {
-            if (results.value == _1)
-            {
-                status = 1;
-            }
-            else if (results.value == _2)
-            {
-                status = 2;
-            }
-            irrecv.resume();
-            break;
-        }
-#endif
         customKeypad.tick();
         if (customKeypad.available())
         {
             e = customKeypad.read();
             if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(3, cursorPosition, ILI9341_BLACK);
+                PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition--;
                 if (cursorPosition == 0)
                 {
@@ -782,7 +737,7 @@ void UI_3()
             }
             else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(3, cursorPosition, ILI9341_BLACK);
+                PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
                 if (cursorPosition == 3)
                 {
@@ -792,8 +747,8 @@ void UI_3()
             }
             else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(3, cursorPosition, ILI9341_GREEN);
-                tft.drawRect(15, 245, 210, 34, ILI9341_GREEN);
+                PlayCursor(3, cursorPosition, successColor);
+                tft.drawRect(15, 245, 210, 34, successColor);
                 TextSettings(ILI9341_WHITE, 3, 20, 250);
                 tft.print("Loading...");
                 // TODO 播放音乐的操作
@@ -810,7 +765,7 @@ void UI_3()
                     tmrpcm.play("twotigers.wav");
                 }
                 delay(5000);
-                tft.fillRect(15, 245, 210, 34, ILI9341_BLACK);
+                tft.fillRect(15, 245, 210, 34, backgroundColor);
             }
             else if (willChangeStatus(e.bit.KEY, 3))
             {
@@ -839,28 +794,13 @@ void UI_4()
     PlayCursor(3, cursorPosition, ILI9341_WHITE);
     while (1)
     {
-#ifdef IR
-        if (irrecv.decode(&results))
-        {
-            if (results.value == _1)
-            {
-                status = 1;
-            }
-            else if (results.value == _2)
-            {
-                status = 2;
-            }
-            irrecv.resume();
-            break;
-        }
-#endif
         customKeypad.tick();
         if (customKeypad.available())
         {
             e = customKeypad.read();
             if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(3, cursorPosition, ILI9341_BLACK);
+                PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition--;
                 if (cursorPosition == 0)
                 {
@@ -870,7 +810,7 @@ void UI_4()
             }
             else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(3, cursorPosition, ILI9341_BLACK);
+                PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
                 if (cursorPosition == 3)
                 {
@@ -880,17 +820,17 @@ void UI_4()
             }
             else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
             {
-                PlayCursor(3, cursorPosition, ILI9341_GREEN);
-                tft.drawRect(15, 245, 210, 34, ILI9341_GREEN);
+                PlayCursor(3, cursorPosition, successColor);
+                tft.drawRect(15, 245, 210, 34, successColor);
                 TextSettings(ILI9341_WHITE, 3, 20, 250);
                 tft.print(F("Playing..."));
                 // 播放"视频"
-                tft.fillScreen(ILI9341_BLACK);
+                tft.fillScreen(backgroundColor);
                 PlayVideo(cursorPosition);
                 tft.setCursor(60, 250);
                 tft.println("the end");
                 delay(5000);
-                tft.fillRect(15, 245, 210, 34, ILI9341_BLACK);
+                tft.fillRect(15, 245, 210, 34, backgroundColor);
                 goto Label4;
             }
             else if (willChangeStatus(e.bit.KEY, 4))
@@ -903,6 +843,77 @@ void UI_4()
 Label4:;
 }
 
+void UI_5()
+{
+    PrintBase(5);
+
+    // 显示主题
+    TextSettings(ILI9341_WHITE, 2, 20, 46);
+    tft.println(F("1.Default"));
+    tft.setCursor(20, 66);
+    tft.println(F("2.Monokai"));
+    tft.setCursor(20, 86);
+    tft.println(F("3.Ubuntu"));
+    tft.setCursor(20, 106);
+    tft.println(F("4.Powershell"));
+    tft.setCursor(20, 126);
+    tft.println(F("5.Cyberpunk"));
+    tft.setCursor(20,170);
+    tft.println(F("Now Theme:"));
+    tft.setCursor(180,170);
+    tft.println(colorStatus);
+
+    // 光标
+    uint8_t cursorPosition = 1;
+    PlayCursor(3, cursorPosition, ILI9341_WHITE);
+    while (1)
+    {
+        customKeypad.tick();
+        if (customKeypad.available())
+        {
+            e = customKeypad.read();
+            if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                PlayCursor(3, cursorPosition, backgroundColor);
+                cursorPosition--;
+                if (cursorPosition == 0)
+                {
+                    cursorPosition = 5;
+                }
+                PlayCursor(3, cursorPosition, ILI9341_WHITE);
+            }
+            else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                PlayCursor(3, cursorPosition, backgroundColor);
+                cursorPosition++;
+                if (cursorPosition == 6)
+                {
+                    cursorPosition = 1;
+                }
+                PlayCursor(3, cursorPosition, ILI9341_WHITE);
+            }
+            else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                PlayCursor(3, cursorPosition, successColor);
+                colorStatus = cursorPosition;
+                EEPROM.write(9,cursorPosition);
+                goto Label5;
+            }
+            else if (willChangeStatus(e.bit.KEY, 5))
+            {
+                status = e.bit.KEY;
+                goto Label5;
+            }
+        }
+    }
+Label5:;
+int *p = *(colors+colorStatus-1);
+backgroundColor = p[0];
+successColor = p[1];
+warningColor = p[2];
+infoColor = p[3];
+}
+
 /**************************6.主循环界面**************************/
 void loop()
 {
@@ -910,7 +921,7 @@ void loop()
     {
         if (!flag)
         {
-            tft.fillScreen(ILI9341_BLACK);
+            tft.fillScreen(backgroundColor);
         }
         flag = false;
         Time tim = rtc.time();
@@ -920,20 +931,26 @@ void loop()
 
     else if (status == 2)
     {
-        tft.fillScreen(ILI9341_BLACK);
+        tft.fillScreen(backgroundColor);
         UI_2();
     }
 
     else if (status == 3)
     {
-        tft.fillScreen(ILI9341_BLACK);
+        tft.fillScreen(backgroundColor);
         UI_3();
     }
 
     else if (status == 4)
     {
-        tft.fillScreen(ILI9341_BLACK);
+        tft.fillScreen(backgroundColor);
         UI_4();
+    }
+
+    else if(status == 5)
+    {
+        tft.fillScreen(backgroundColor);
+        UI_5();
     }
 
     else
