@@ -101,6 +101,9 @@ const uint8_t keys[ROWS][COLS] = {
 bool is_clock = false; // 是否设定闹钟
 bool is_Wifi = false;  // 是否连接wifi
 
+// 设定系统颜色
+
+
 // 设定设备状态的状态值
 volatile uint8_t status = 1;
 const uint8_t idList[] = {1, 2, 3, 4};
@@ -131,7 +134,7 @@ void setup()
     rtc.writeProtect(false);            //关闭写保护
     rtc.halt(false);                    //清除时钟停止标志
     Time t(2021, 7, 24, 23, 59, 50, 7); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
-    rtc.time(t);                        //向DS1302设置时间数据
+    rtc.time(t);                        //向DS1302设置时32*3间数据
 
     tft.begin();
     tft.fillScreen(ILI9341_BLACK);
