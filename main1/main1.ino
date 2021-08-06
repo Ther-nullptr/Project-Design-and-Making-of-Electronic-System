@@ -169,7 +169,7 @@ void setup()
 
     customKeypad.begin();
 
-    tmrpcm.speakerPin = 46; // 初始化音乐播放管脚为11
+    tmrpcm.speakerPin = 46; // 初始化音乐播放管脚为46
     tmrpcm.setVolume(volume);
 
     // 屏幕主状态初始界面设置
@@ -455,6 +455,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         {
             TextSettings(warningColor, 3, 36, 180);
             tft.print("Alarming!");
+            
             if (!tmrpcm.isPlaying())
             {
                 if (alarmMusic == 1)
@@ -474,6 +475,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
                     tmrpcm.play("jojo.wav");
                 }
             }
+            
             // TODO 播放音乐
         }
         else if (tim.hr == alarmHour && tim.min == alarmMinute + 1)
@@ -720,6 +722,9 @@ Label2:;
 void UI_3()
 {
     PrintBase(3);
+    TextSettings(infoColor,1,170,3);
+    tft.print(F("volume:"));
+    tft.print(volume);
 
     // 显示歌单
     TextSettings(ILI9341_WHITE, 2, 20, 46);
@@ -769,8 +774,8 @@ void UI_3()
                     volume = 1;
                 }
                 tmrpcm.volume(0);
-                tft.fillRect(212,1,W_1,H_1,backgroundColor);
-                TextSettings(infoColor,1,212,1);
+                tft.fillRect(212,1,W_1+1,H_1+1,backgroundColor);
+                TextSettings(infoColor,1,212,3);
                 tft.println(volume);
             }
             else if (e.bit.KEY == RIGHT && e.bit.EVENT == KEY_JUST_PRESSED)
@@ -781,8 +786,8 @@ void UI_3()
                     volume = 7;
                 }
                 tmrpcm.volume(1);
-                tft.fillRect(212, 1, W_1, H_1, backgroundColor);
-                TextSettings(infoColor, 1, 212, 1);
+                tft.fillRect(212, 1, W_1+1, H_1+1, backgroundColor);
+                TextSettings(infoColor, 1, 212, 3);
                 tft.println(volume);
             }
             else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
