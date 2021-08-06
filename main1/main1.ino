@@ -120,6 +120,9 @@ const uint8_t idList[] = {1, 2, 3, 4,5};
 // 控制程序第一次是否清屏
 bool flag = true;
 
+// 设置音量
+uint8_t volume = 3;
+
 // 器件类定义
 DS1302 rtc(RST, DAT, CLK);                                                                      // 时钟模块初始化
 SdFat SD;                                                                                       // sd卡对象
@@ -167,7 +170,7 @@ void setup()
     customKeypad.begin();
 
     tmrpcm.speakerPin = 46; // 初始化音乐播放管脚为11
-    tmrpcm.setVolume(3);
+    tmrpcm.setVolume(volume);
 
     // 屏幕主状态初始界面设置
     tft.setTextSize(1);
@@ -456,11 +459,19 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             {
                 if (alarmMusic == 1)
                 {
-                    tmrpcm.play("demo.wav");
+                    tmrpcm.play("badapple.wav");
                 }
                 else if (alarmMusic == 2)
                 {
                     tmrpcm.play("twotigers.wav");
+                }
+                else if (alarmMusic == 3)
+                {
+                    tmrpcm.play("lostrivers.wav");
+                }
+                else if (alarmMusic == 4)
+                {
+                    tmrpcm.play("jojo.wav");
                 }
             }
             // TODO 播放音乐
@@ -715,6 +726,11 @@ void UI_3()
     tft.println(F("1.Bad Apple"));
     tft.setCursor(20, 66);
     tft.println(F("2.Two Tigers"));
+    tft.setCursor(20, 86);
+    tft.println(F("3.Lost Rivers"));
+    tft.setCursor(20, 106);
+    tft.println(F("4.JOJO"));
+
 
     // 光标
     uint8_t cursorPosition = 1;
@@ -731,7 +747,7 @@ void UI_3()
                 cursorPosition--;
                 if (cursorPosition == 0)
                 {
-                    cursorPosition = 2;
+                    cursorPosition = 4;
                 }
                 PlayCursor(3, cursorPosition, ILI9341_WHITE);
             }
@@ -739,11 +755,35 @@ void UI_3()
             {
                 PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
-                if (cursorPosition == 3)
+                if (cursorPosition == 5)
                 {
                     cursorPosition = 1;
                 }
                 PlayCursor(3, cursorPosition, ILI9341_WHITE);
+            }
+            else if (e.bit.KEY == LEFT && e.bit.EVENT == KEY_JUST_PRESSED) // 调节音量(但实际上也和音色有关)
+            {
+                volume--;
+                if(volume == 0)
+                {
+                    volume = 1;
+                }
+                tmrpcm.volume(0);
+                tft.fillRect(212,1,W_1,H_1,backgroundColor);
+                TextSettings(infoColor,1,212,1);
+                tft.println(volume);
+            }
+            else if (e.bit.KEY == RIGHT && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                volume++;
+                if(volume == 8)
+                {
+                    volume = 7;
+                }
+                tmrpcm.volume(1);
+                tft.fillRect(212, 1, W_1, H_1, backgroundColor);
+                TextSettings(infoColor, 1, 212, 1);
+                tft.println(volume);
             }
             else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
             {
@@ -758,11 +798,19 @@ void UI_3()
                 }
                 if (cursorPosition == 1)
                 {
-                    tmrpcm.play("demo.wav");
+                    tmrpcm.play("badapple.wav");
                 }
                 else if (cursorPosition == 2)
                 {
                     tmrpcm.play("twotigers.wav");
+                }
+                else if (cursorPosition == 3)
+                {
+                    tmrpcm.play("lostrivers.wav");
+                }
+                else if (cursorPosition == 4)
+                {
+                    tmrpcm.play("jojo.wav");
                 }
                 delay(5000);
                 tft.fillRect(15, 245, 210, 34, backgroundColor);
