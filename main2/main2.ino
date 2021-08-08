@@ -13,7 +13,7 @@ char ssid[] = "YSJJ";         //wifi名
 char pswd[] = "wangzy1222";   //wifi密码
 
 const uint8_t kIrLed = 4; // ESP8266 GPIO pin to use. Recommended: 4 (D2).
-const uint8_t one_wire_bus = D7;
+const uint8_t one_wire_bus = 13;
 
 /****************2.全局对象******************/
 // 全局变量

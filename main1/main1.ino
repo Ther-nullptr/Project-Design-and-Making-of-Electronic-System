@@ -13,6 +13,7 @@
 #include <Adafruit_Keypad.h>
 #include <EEPROM.h>
 #include <TMRpcm.h>               //! 重要! 要在原库中加入 #define SDFAT(.h和.cpp)
+#include <DHT.h>
 
 /**********************0.宏定义**********************/
 // 定义每一种字号的大小
@@ -40,6 +41,7 @@
 #define DEBUG
 #define MEGA
 #define KEYPAD
+#define DHTTYPE DHT11
 
 #ifdef UNO
 // 时钟管脚定义
@@ -78,8 +80,8 @@ const int dc = 8;
 const int rst = 9;
 const int blk = 10;
 
-// 红外接收管管脚定义
-const int RECV_PIN = A0;
+// 传感器管脚定义
+const int dhtpin = 44;
 
 // 按键模块定义
 const byte ROWS = 4;                         // rows
@@ -126,8 +128,6 @@ uint8_t volume = 3;
 // 器件类定义
 DS1302 rtc(RST, DAT, CLK);                                                                      // 时钟模块初始化
 SdFat SD;                                                                                       // sd卡对象
-IRrecv irrecv(RECV_PIN);                                                                        // 红外接收器
-decode_results results;                                                                         // 红外信号解码值
 Adafruit_ILI9341 tft = Adafruit_ILI9341(cs, dc, sda, sck, rst, blk);                            // tft屏
 Adafruit_Keypad customKeypad = Adafruit_Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); // 4*4键盘
 Adafruit_Image img;                                                                             // 所要读取的图片对象
@@ -135,6 +135,7 @@ Adafruit_ImageReader reader(SD);                                                
 ImageReturnCode stat;                                                                           // 图片读取状态
 keypadEvent e;                                                                                  // 监测按键状态的对象
 TMRpcm tmrpcm;                                                                                  // 读取wav文件的对象
+DHT dht(dhtpin, DHTTYPE);                                                                       // 温湿度传感器对象    
 
 // 时间字符串
 char date[20], time[10], *week;
@@ -165,8 +166,6 @@ void setup()
 
     Serial.begin(9600);
 
-    irrecv.enableIRIn();
-
     customKeypad.begin();
 
     tmrpcm.speakerPin = 46; // 初始化音乐播放管脚为46
@@ -179,6 +178,9 @@ void setup()
     {
         is_clock = true;
     }
+
+    // 开启传感器
+    dht.begin();
 }
 
 /**********************4.功能类函数**********************/
@@ -407,15 +409,23 @@ void PlayVideo(uint8_t id)
     switch (id)
     {
     case 1:
-        before = "";
+        before = "/1/";
         break;
 
     case 2:
-        before = "T";
+        before = "/2/";
+        break;
+    
+    case 3:
+        before = "/3/";
+        break;
+
+    case 4:
+        before = "/4/";
         break;
     }
 
-    int num = 1;
+    uint16_t num = 1;
     while (1)
     {
         filename = before + num + after;
@@ -434,6 +444,10 @@ void PlayVideo(uint8_t id)
                 break;
             }
         }
+        else
+        {
+            delay(5000);
+        }
         num++;
     }
 }
@@ -446,14 +460,47 @@ void UI_1() // 一号界面,也是初始界面,显示时间
     uint8_t alarmMinute = EEPROM.read(1);
     uint8_t alarmMusic = EEPROM.read(2);
 
+    uint8_t h = dht.readHumidity();
+    uint8_t t = dht.readTemperature();
+    TextSettings(ILI9341_WHITE,2,30,170);
+    tft.print(F("temperature:"));
+    tft.print(t);
+    tft.print(F("C"));
+    TextSettings(ILI9341_WHITE,2,30,190);
+    tft.print(F("humidity:"));
+    tft.print(h);
+    tft.print(F("%"));
+
+
     // 时刻检测时间，但不时刻在屏幕上刷新时间
     while (1)
     {
+        // 温度显示
+        h = dht.readHumidity();
+        t = dht.readTemperature();
+        static uint8_t last_temp = 0;
+        static uint8_t last_humi = 0;
+        if (last_temp != t)
+        {
+            TextSettings(ILI9341_WHITE, 2, 172,170);
+            tft.fillRect(172,170, 24, 18, backgroundColor);
+            tft.print(t);
+        }
+        last_temp = t;
+        if (last_humi != h)
+        {
+            TextSettings(ILI9341_WHITE, 2, 172, 190);
+            tft.fillRect(172,190, 24, 18, backgroundColor);
+            tft.print(h);
+        }
+        last_humi = h;
+
+        // 时间显示
         static uint16_t last_min = 0;
         Time tim = rtc.time();
         if (tim.hr == alarmHour && tim.min == alarmMinute) //触发闹钟响铃1min
         {
-            TextSettings(warningColor, 3, 36, 180);
+            TextSettings(warningColor, 3, 36, 230);
             tft.print("Alarming!");
             
             if (!tmrpcm.isPlaying())
@@ -484,7 +531,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             {
                 tmrpcm.disable();
             }
-            tft.fillRect(36, 180, 210, 25, backgroundColor);
+            tft.fillRect(36, 230, 210, 25, backgroundColor);
         }
         if (tim.min != last_min) // 检测到时间发生改变
         {
@@ -836,11 +883,15 @@ void UI_4()
 {
     PrintBase(4);
 
-    // 显示歌单
+    // 显示相册
     TextSettings(ILI9341_WHITE, 2, 20, 46);
-    tft.println(F("Bad Apple"));
+    tft.println(F("1.sight"));
     tft.setCursor(20, 66);
-    tft.println(F("Two Tigers"));
+    tft.println(F("2.mnist"));
+    tft.setCursor(20, 86);
+    tft.println(F("3.cyberpunk"));
+    tft.setCursor(20, 106);
+    tft.println(F("4.comics"));
 
     // 光标
     uint8_t cursorPosition = 1;
@@ -857,7 +908,7 @@ void UI_4()
                 cursorPosition--;
                 if (cursorPosition == 0)
                 {
-                    cursorPosition = 2;
+                    cursorPosition = 4;
                 }
                 PlayCursor(3, cursorPosition, ILI9341_WHITE);
             }
@@ -865,7 +916,7 @@ void UI_4()
             {
                 PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
-                if (cursorPosition == 3)
+                if (cursorPosition == 5)
                 {
                     cursorPosition = 1;
                 }

@@ -1,3 +1,7 @@
 */.vscode/
 .vscode/
 reference.md
+Report/
+!Report/report.pdf
+!/Rreport/*.jpg
+!/Rreport/*.png
