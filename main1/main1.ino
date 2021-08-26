@@ -146,7 +146,7 @@ void setup()
     // !以下的内容在正式启用的时候一定要关掉
     rtc.writeProtect(false);            //关闭写保护
     rtc.halt(false);                    //清除时钟停止标志
-    Time t(2021, 7, 24, 23, 59, 50, 7); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
+    Time t(2021, 8, 12, 23, 59, 50, 7); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
     rtc.time(t);                        //向DS1302设置时32*3间数据
 
     tft.begin();
@@ -482,15 +482,15 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         static uint8_t last_humi = 0;
         if (last_temp != t)
         {
-            TextSettings(ILI9341_WHITE, 2, 172,170);
-            tft.fillRect(172,170, 24, 18, backgroundColor);
+            TextSettings(ILI9341_WHITE, 2, 172, 170);
+            tft.fillRect(172, 170, 24, 18, backgroundColor);
             tft.print(t);
         }
         last_temp = t;
         if (last_humi != h)
         {
-            TextSettings(ILI9341_WHITE, 2, 172, 190);
-            tft.fillRect(172,190, 24, 18, backgroundColor);
+            TextSettings(ILI9341_WHITE, 2, 136, 190);
+            tft.fillRect(136, 190, 24, 18, backgroundColor);
             tft.print(h);
         }
         last_humi = h;
@@ -1031,6 +1031,10 @@ void loop()
         Time tim = rtc.time();
         PrintTime(tim);
         UI_1();
+        if(tmrpcm.isPlaying())
+        {
+            tmrpcm.disable();
+        }
     }
 
     else if (status == 2)
