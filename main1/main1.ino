@@ -103,7 +103,7 @@ bool is_clock = false; // 是否设定闹钟
 bool is_Wifi = false;  // 是否连接wifi
 
 // 设定系统颜色
-int colors[][4] = {
+const int colors[][4] = {
     {ILI9341_BLACK,ILI9341_GREEN,ILI9341_RED,ILI9341_BLUE}, // default
     {0x0000,0xafe5,0xffe0,0x07ff},                          // monokai
     {0x6002,0x4cc0,0xc800,0x3334},                          // ubuntu
@@ -139,6 +139,49 @@ DHT dht(dhtpin, DHTTYPE);                                                       
 
 // 时间字符串
 char date[20], time[10], *week;
+
+// 文件设置
+const char* modeNames[10] = 
+{
+    "START",
+    "CLOCK",
+    "MUSIC",
+    "IMAGE",
+    "COLOR"
+};
+
+const char* musicPrintNames[10] = 
+{
+    "1.Bad Apple",
+    "2.Two Tigers",
+    "3.Lost Rivers",
+    "4.JOJO"
+};
+
+const char* musicPlayNames[10] =
+{
+    "badapple.wav",
+    "twotigers.wav",
+    "lostrivers.wav",
+    "jojo.wav"
+};
+
+const char* videoNames[10]=
+{
+    "1.sight",
+    "2.mnist",
+    "3.cyberpunk",
+    "4.comics"
+};
+
+const char* dirNames[10] = 
+{
+    "/sight/",
+    "/mnist/",
+    "/cyberpunk/",
+    "/comics/",
+};
+
 
 /**********************3.初始状态设定**********************/
 void setup()
@@ -348,6 +391,8 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
 
     // 画标题
     TextSettings(ILI9341_WHITE, 3, 75, 20);
+    tft.print(F(modeNames[id]))
+    /*
     switch (id)
     {
     case 1:
@@ -370,6 +415,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
         tft.print(F("COLOR"));
         break;
     }
+    */
 }
 
 /**************************************************************************/
@@ -406,6 +452,8 @@ void PlayVideo(uint8_t id)
     String after(".bmp");
     String filename;
 
+    before = dirNames[id];
+    /*
     switch (id)
     {
     case 1:
@@ -424,6 +472,7 @@ void PlayVideo(uint8_t id)
         before = "/4/";
         break;
     }
+    */
 
     uint16_t num = 1;
     while (1)
@@ -505,6 +554,8 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             
             if (!tmrpcm.isPlaying())
             {
+                tmrpcm.play(musicPlayNames[alarmMusic-1]);
+                /*
                 if (alarmMusic == 1)
                 {
                     tmrpcm.play("badapple.wav");
@@ -521,6 +572,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
                 {
                     tmrpcm.play("jojo.wav");
                 }
+                */
             }
             
             // TODO 播放音乐
@@ -775,6 +827,12 @@ void UI_3()
 
     // 显示歌单
     TextSettings(ILI9341_WHITE, 2, 20, 46);
+    for(int i = 0;i<4;i++)
+    {
+        tft.println(F(musicPrintNames[i]));
+        tft.setCursor(20,66+i*20);
+    }
+    /*
     tft.println(F("1.Bad Apple"));
     tft.setCursor(20, 66);
     tft.println(F("2.Two Tigers"));
@@ -782,7 +840,7 @@ void UI_3()
     tft.println(F("3.Lost Rivers"));
     tft.setCursor(20, 106);
     tft.println(F("4.JOJO"));
-
+    */
 
     // 光标
     uint8_t cursorPosition = 1;
@@ -848,6 +906,8 @@ void UI_3()
                 {
                     tmrpcm.disable(); // 就关闭当前音乐
                 }
+                tmrpcm.play(musicPrintNames[cursorPosition-1]);
+                /*
                 if (cursorPosition == 1)
                 {
                     tmrpcm.play("badapple.wav");
@@ -864,7 +924,8 @@ void UI_3()
                 {
                     tmrpcm.play("jojo.wav");
                 }
-                delay(5000);
+                */
+                delay(3000);
                 tft.fillRect(15, 245, 210, 34, backgroundColor);
             }
             else if (willChangeStatus(e.bit.KEY, 3))
@@ -885,6 +946,12 @@ void UI_4()
 
     // 显示相册
     TextSettings(ILI9341_WHITE, 2, 20, 46);
+    for(int i = 0;i<4;i++)
+    {
+        tft.println(F(videoNames[i]));
+        tft.setCursor(20,66+i*20);
+    }
+    /*
     tft.println(F("1.sight"));
     tft.setCursor(20, 66);
     tft.println(F("2.mnist"));
@@ -892,6 +959,7 @@ void UI_4()
     tft.println(F("3.cyberpunk"));
     tft.setCursor(20, 106);
     tft.println(F("4.comics"));
+    */
 
     // 光标
     uint8_t cursorPosition = 1;
