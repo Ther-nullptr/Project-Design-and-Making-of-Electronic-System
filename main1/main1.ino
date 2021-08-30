@@ -83,6 +83,22 @@ const int blk = 10;
 // 传感器管脚定义
 const int dhtpin = 44;
 
+// 各个模块高电平和低电平的管脚
+const int TFThigh = 4;
+const int TFTlow = 3;
+const int IRhigh = 12;
+const int IRlow = 11;
+const int SDhigh = 49;
+const int SDlow = 47;
+const int Audiohigh = 45;
+const int Audiolow = 43;
+const int LM35high = 41;
+const int LM35low = 29;
+const int DHThigh = 37;
+const int DHTlow = 35;
+const int Clockhigh = 33;
+const int Clocklow = 31; 
+
 // 按键模块定义
 const byte ROWS = 4;                         // rows
 const byte COLS = 4;                         // columns
@@ -141,7 +157,7 @@ DHT dht(dhtpin, DHTTYPE);                                                       
 char date[20], time[10], *week;
 
 // 文件设置
-char* modeNames[10] = 
+char* modeNames[] = 
 {
     "START",
     "CLOCK",
@@ -150,7 +166,7 @@ char* modeNames[10] =
     "COLOR"
 };
 
-char* musicPrintNames[10] = 
+char* musicPrintNames[] = 
 {
     "1.Bad Apple",
     "2.Two Tigers",
@@ -158,7 +174,7 @@ char* musicPrintNames[10] =
     "4.JOJO"
 };
 
-char* musicPlayNames[10] =
+char* musicPlayNames[] =
 {
     "badapple.wav",
     "twotigers.wav",
@@ -166,7 +182,7 @@ char* musicPlayNames[10] =
     "jojo.wav"
 };
 
-char* videoNames[10]=
+char* videoNames[]=
 {
     "1.sight",
     "2.mnist",
@@ -174,7 +190,7 @@ char* videoNames[10]=
     "4.comics"
 };
 
-char* dirNames[10] = 
+char* dirNames[] = 
 {
     "/sight/",
     "/mnist/",
@@ -186,6 +202,37 @@ char* dirNames[10] =
 /**********************3.初始状态设定**********************/
 void setup()
 {
+    // 初始化管脚
+    pinMode(TFThigh, OUTPUT);
+    pinMode(TFTlow, OUTPUT);
+    pinMode(IRhigh, OUTPUT);
+    pinMode(IRlow, OUTPUT);
+    pinMode(SDhigh, OUTPUT);
+    pinMode(SDlow, OUTPUT);
+    pinMode(Audiohigh, OUTPUT);
+    pinMode(Audiolow, OUTPUT);
+    pinMode(LM35high, OUTPUT);
+    pinMode(LM35low, OUTPUT);
+    pinMode(DHThigh, OUTPUT);
+    pinMode(DHTlow, OUTPUT);
+    pinMode(Clockhigh, OUTPUT);
+    pinMode(Clocklow, OUTPUT);
+    // 控制管脚电平高低
+    digitalWrite(TFThigh, HIGH);
+    digitalWrite(TFTlow, LOW);
+    digitalWrite(IRhigh, HIGH);
+    digitalWrite(IRlow, LOW);
+    digitalWrite(SDhigh, HIGH);
+    digitalWrite(SDlow, LOW);
+    digitalWrite(Audiohigh, HIGH);
+    digitalWrite(Audiolow, LOW);
+    digitalWrite(LM35high, HIGH);
+    digitalWrite(LM35low, LOW);
+    digitalWrite(DHThigh, HIGH);
+    digitalWrite(DHTlow, LOW);
+    digitalWrite(Clockhigh, HIGH);
+    digitalWrite(Clocklow, LOW);
+
     // !以下的内容在正式启用的时候一定要关掉
     rtc.writeProtect(false);            //关闭写保护
     rtc.halt(false);                    //清除时钟停止标志
@@ -391,7 +438,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
 
     // 画标题
     TextSettings(ILI9341_WHITE, 3, 75, 20);
-    tft.print(modeNames[id]);
+    tft.print(modeNames[id-1]);
     /*
     switch (id)
     {
@@ -452,7 +499,7 @@ void PlayVideo(uint8_t id)
     String after(".bmp");
     String filename;
 
-    before = dirNames[id];
+    before = dirNames[id-1];
     /*
     switch (id)
     {
@@ -554,6 +601,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             
             if (!tmrpcm.isPlaying())
             {
+                tmrpcm.setVolume(volume);
                 tmrpcm.play(musicPlayNames[alarmMusic-1]);
                 /*
                 if (alarmMusic == 1)
@@ -582,6 +630,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             if (tmrpcm.isPlaying())
             {
                 tmrpcm.disable();
+                tmrpcm.setVolume(0);
             }
             tft.fillRect(36, 230, 210, 25, backgroundColor);
         }
@@ -906,7 +955,8 @@ void UI_3()
                 {
                     tmrpcm.disable(); // 就关闭当前音乐
                 }
-                tmrpcm.play(musicPrintNames[cursorPosition-1]);
+                tmrpcm.setVolume(volume);
+                tmrpcm.play(musicPlayNames[cursorPosition-1]);
                 /*
                 if (cursorPosition == 1)
                 {
@@ -931,12 +981,18 @@ void UI_3()
             else if (willChangeStatus(e.bit.KEY, 3))
             {
                 status = e.bit.KEY;
+                if (tmrpcm.isPlaying())
+                {
+                    tmrpcm.setVolume(0);
+                    tmrpcm.stopPlayback();
+                    tmrpcm.disable(); //每次跳出该界面都会关闭音乐
+                }
                 goto Label3;
             }
         }
     }
 Label3:;
-tmrpcm.disable();//每次跳出该界面都会关闭音乐
+    
 }
 
 // 播放视频的界面
