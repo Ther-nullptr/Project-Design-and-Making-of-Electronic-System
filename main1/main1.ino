@@ -103,7 +103,7 @@ bool is_clock = false; // 是否设定闹钟
 bool is_Wifi = false;  // 是否连接wifi
 
 // 设定系统颜色
-const int colors[][4] = {
+int colors[][4] = {
     {ILI9341_BLACK,ILI9341_GREEN,ILI9341_RED,ILI9341_BLUE}, // default
     {0x0000,0xafe5,0xffe0,0x07ff},                          // monokai
     {0x6002,0x4cc0,0xc800,0x3334},                          // ubuntu
@@ -141,7 +141,7 @@ DHT dht(dhtpin, DHTTYPE);                                                       
 char date[20], time[10], *week;
 
 // 文件设置
-const char* modeNames[10] = 
+char* modeNames[10] = 
 {
     "START",
     "CLOCK",
@@ -150,7 +150,7 @@ const char* modeNames[10] =
     "COLOR"
 };
 
-const char* musicPrintNames[10] = 
+char* musicPrintNames[10] = 
 {
     "1.Bad Apple",
     "2.Two Tigers",
@@ -158,7 +158,7 @@ const char* musicPrintNames[10] =
     "4.JOJO"
 };
 
-const char* musicPlayNames[10] =
+char* musicPlayNames[10] =
 {
     "badapple.wav",
     "twotigers.wav",
@@ -166,7 +166,7 @@ const char* musicPlayNames[10] =
     "jojo.wav"
 };
 
-const char* videoNames[10]=
+char* videoNames[10]=
 {
     "1.sight",
     "2.mnist",
@@ -174,7 +174,7 @@ const char* videoNames[10]=
     "4.comics"
 };
 
-const char* dirNames[10] = 
+char* dirNames[10] = 
 {
     "/sight/",
     "/mnist/",
@@ -391,7 +391,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
 
     // 画标题
     TextSettings(ILI9341_WHITE, 3, 75, 20);
-    tft.print(F(modeNames[id]))
+    tft.print(modeNames[id]);
     /*
     switch (id)
     {
@@ -829,7 +829,7 @@ void UI_3()
     TextSettings(ILI9341_WHITE, 2, 20, 46);
     for(int i = 0;i<4;i++)
     {
-        tft.println(F(musicPrintNames[i]));
+        tft.println(musicPrintNames[i]);
         tft.setCursor(20,66+i*20);
     }
     /*
@@ -948,7 +948,7 @@ void UI_4()
     TextSettings(ILI9341_WHITE, 2, 20, 46);
     for(int i = 0;i<4;i++)
     {
-        tft.println(F(videoNames[i]));
+        tft.println(videoNames[i]);
         tft.setCursor(20,66+i*20);
     }
     /*
