@@ -6,14 +6,27 @@
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 #include <ir_Gree.h>
+#include <ESP8266WiFi.h>
+#include <SoftwareSerial.h>
 
 /****************1.基本常量******************/
-char auth[] = "29fa581e93d0"; //从blinker应用上得到的设备密钥
-char ssid[] = "YSJJ";         //wifi名
-char pswd[] = "wangzy1222";   //wifi密码
+const char auth[] = "0b174fa5860d";     //从blinker应用上得到的设备密钥
+const char ssid[] = "Honor 10";         //wifi名
+const char pswd[] = "12345678";         //wifi密码
+const char host[] = "api.seniverse.com";//API地址
+
+const int httpPort = 80;
 
 const uint8_t kIrLed = 4; // ESP8266 GPIO pin to use. Recommended: 4 (D2).
-const uint8_t one_wire_bus = 13;
+const uint8_t rx = D6;
+const uint8_t tx = D7;
+const uint8_t one_wire_bus = D5;
+
+//心知天气HTTP请求所需信息
+const String key = "S61QcIDfu7zNuIXPj"; // 私钥
+const String location = "beijing";      // 城市
+const String locationList[5] = {"beijing", "xining", "taiyuan", "shanghai", "chengdu"};
+String weatherList; 
 
 /****************2.全局对象******************/
 // 全局变量
@@ -23,7 +36,6 @@ uint8_t ACTemp = 25;
 bool power = false;
 uint8_t fanSpeed = 0; // 0为自动,1-3风速依次增加
 
-
 // 新建组件对象
 BlinkerNumber POWER("power");         // blinker需要监视的对象(开关)
 BlinkerNumber TEMP("temp");           // blinker需要监视的对象(温度)
@@ -32,7 +44,9 @@ BlinkerNumber FANSPEED("fanSpeed");   // blinker需要监视的对象(风速)
 OneWire oneWire(one_wire_bus);        // 初始连接在单总线上的单总线设备
 DallasTemperature sensors(&oneWire);  // 温度控制器对象
 IRGreeAC ac(kIrLed);                  // Set the GPIO to be used for sending messages.
+SoftwareSerial arduinoSerial(rx,tx);        // 串口通信对象
 
+// 天气对象定义
 
 /****************3.函数定义******************/
 // 心跳包函数,用于将信息发送给app
@@ -44,24 +58,8 @@ void heartbeat()
     FANSPEED.print(fanSpeed);
 }
 
-// 获取空调状态
-/*
-void printState()
-{
-    // Display the settings.
-    Serial.println("GREE A/C remote is in the following state:");
-    Serial.printf("  %s\n", ac.toString().c_str());
-    /*
-    // Display the encoded IR sequence.
-    unsigned char *ir_code = ac.getRaw();
-    Serial.print("IR Code: 0x");
-    for (uint8_t i = 0; i < kGreeStateLength; i++)
-        Serial.printf("%02X", ir_code[i]);
-    Serial.println();
-    */
-
 // 控制空调,并更新空调状态
-void AC_control() 
+void AC_control()
 {
     // 可调节设置
     if (power)
@@ -87,34 +85,81 @@ void AC_control()
     ac.send();
 }
 
+// 获取天气数据
+// void ForecastData(const String & data)
+// {
+//     BLINKER_LOG("weather: ",data);
+//     StaticJsonDocument<400> doc;
+//     DeserializationError error = deserializeJson(doc,data);
+//     if(error)
+//     {
+//         Serial.print("error is:");
+//         Serial.println(error.c_str());
+//         return;
+//     }
+// }
+
+// 获取空气质量数据
+// void AirData(const String & data)
+// {
+//     BLINKER_LOG("air: ", data);
+// }
+
 void setup()
 {
-    Serial.begin(115200);
+    // Serial.begin(115200);
+    arduinoSerial.begin(9600);
+    //BLINKER_DEBUG.stream(Serial);
 
     // Blinker组件初始化
     Blinker.begin(auth, ssid, pswd);
     Blinker.attachHeartbeat(heartbeat);
+    //Blinker.attachWeather(ForecastData);
+    //Blinker.attachAir(AirData);
 
     // 传感器初始化
     sensors.begin();
 
     // 空调状态设置
     ac.begin();
+
+    // wifi组件初始化
+    WiFi.mode(WIFI_STA); 
+    WiFi.begin(ssid,pswd);
+    while(WiFi.status()!=WL_CONNECTED)
+    {
+        delay(100);
+        // Serial.print(".");
+    }
+    //Serial.println(WiFi.localIP());
 }
 
 void loop()
 {
     static unsigned long time = 0;
     Blinker.run();
+    //Blinker.weather(110108);
+    //Blinker.air(110108);
+    // 建立心知天气API当前天气请求资源地址
+    //weatherList = "{";
+    for (int i = 0; i < 5; i++)
+    {
+        String reqRes = "/v3/weather/now.json?key=" + key +
+                        +"&location=" + locationList[i] + "&language=en&unit=c";
+        weatherList += httpRequest(reqRes,i);
+    }
+    arduinoSerial.println(weatherList);
+    weatherList="";
+
     sensors.requestTemperatures();
     uint8_t t = sensors.getTempCByIndex(0);
     if (isnan(t))
     {
-        BLINKER_LOG("Failed to read from DHT sensor!");
+        //BLINKER_LOG("Failed to read from DHT sensor!");
     }
     else
     {
-        BLINKER_LOG("Temperature: ", t, " *C");
+        //BLINKER_LOG("Temperature: ", t, " *C");
         temp_read = t;
     }
 
@@ -140,11 +185,114 @@ void loop()
     {
         power = false;
     }
-    delay(1000);
+    delay(15000);
     Blinker.delay(2000);
     if(millis() - time >= 1000*30)
     {
         time = millis();
         AC_control();
     }
+}
+
+// 向心知天气服务器服务器请求信息并对信息进行解析
+String httpRequest(String reqRes,int i)
+{
+    WiFiClient client;
+    String json;
+
+    // 建立http请求信息
+    String httpRequest = String("GET ") + reqRes + " HTTP/1.1\r\n" +
+                         "Host: " + host + "\r\n" +
+                         "Connection: close\r\n\r\n";
+    /*
+    Serial.println("");
+    Serial.print("Connecting to ");
+    Serial.print(host);
+    */
+    // 尝试连接服务器
+    if (client.connect(host, httpPort))
+    {
+        //Serial.println(" Success!");
+
+        // 向服务器发送http请求信息
+        client.print(httpRequest);
+        //Serial.println("Sending request: ");
+        //Serial.println(httpRequest);
+
+        // 获取并显示服务器响应状态行
+        String status_response = client.readStringUntil('\n');
+        //Serial.print("status_response: ");
+        //Serial.println(status_response);
+
+        // 使用find跳过HTTP响应头
+        if (client.find("\r\n\r\n"))
+        {
+            //Serial.println("Found Header End. Start Parsing.");
+        }
+        // 利用ArduinoJson库解析心知天气响应信息
+
+        DynamicJsonDocument doc(1024);
+
+        deserializeJson(doc, client);
+
+        JsonObject results_0 = doc["results"][0];
+
+        JsonObject results_0_daily = results_0["now"];
+        String results_0_daily_code = results_0_daily["code"];          
+        String results_0_daily_temperature = results_0_daily["temperature"];               
+
+        // 组装为json字符串准备发送
+        if(i!=0)
+        {
+            json = "\""+String(i*2)+"\":"+results_0_daily_code+",\""+String(i*2+1)+"\":"+results_0_daily_temperature;
+        }
+        else
+        {
+            json = results_0_daily_code+",\""+String(i*2+1)+"\":"+results_0_daily_temperature;
+        }
+        if(i!=4)
+        {
+            json+=",";
+        }
+        // arduinoSerial.println(json);
+
+        // Serial.println(F("======Weather Now======="));
+        // Serial.print(F("weather: "));
+        // Serial.println(results_0_daily_code);
+        // Serial.print(F("temp: "));
+        // Serial.println(results_0_daily_temperature);
+        // Serial.println(F("========================"));
+    }
+    else
+    {
+        //Serial.println(" connection failed!");
+    }
+    //断开客户端与服务器连接工作
+    client.stop();
+    return json;
+}
+
+// 利用ArduinoJson库解析心知天气响应信息
+String parseInfo(WiFiClient client)
+{
+    DynamicJsonDocument doc(1024);
+
+    deserializeJson(doc, client);
+
+    JsonObject results_0 = doc["results"][0];
+
+    JsonObject results_0_daily = results_0["now"];
+    String results_0_daily_code = results_0_daily["code"];          
+    String results_0_daily_temperature = results_0_daily["temperature"];               
+
+    // 组装为json字符串准备发送
+    String json = "{\"a\":\""+results_0_daily_code+"\",\"b\":\""+results_0_daily_temperature+"\"}\n";
+    arduinoSerial.println(json);
+
+    // Serial.println(F("======Weather Now======="));
+    // Serial.print(F("weather: "));
+    // Serial.println(results_0_daily_code);
+    // Serial.print(F("temp: "));
+    // Serial.println(results_0_daily_temperature);
+    // Serial.println(F("========================"));
 }
