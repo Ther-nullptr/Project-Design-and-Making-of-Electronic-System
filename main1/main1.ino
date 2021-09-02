@@ -14,6 +14,8 @@
 #include <EEPROM.h>
 #include <TMRpcm.h>               //! 重要! 要在原库中加入 #define SDFAT(.h和.cpp)
 #include <DHT.h>
+#include <ArduinoJson.h>
+#include <SoftwareSerial.h>
 
 /**********************0.宏定义**********************/
 // 定义每一种字号的大小
@@ -67,6 +69,10 @@ const int RECV_PIN = A0;
 const int RST = 26;
 const int DAT = 24;
 const int CLK = 22;
+
+// 通信管脚定义
+const int rx = A8;
+const int tx = A9;
 
 // sd管脚定义
 const int SDIN = 53;
@@ -133,7 +139,7 @@ int infoColor = colors[0][3];
 
 // 设定设备状态的状态值
 volatile uint8_t status = 1;
-const uint8_t idList[] = {1, 2, 3, 4,5};
+const uint8_t idList[] = {1, 2, 3, 4, 5, 6};
 
 // 控制程序第一次是否清屏
 bool flag = true;
@@ -152,9 +158,14 @@ ImageReturnCode stat;                                                           
 keypadEvent e;                                                                                  // 监测按键状态的对象
 TMRpcm tmrpcm;                                                                                  // 读取wav文件的对象
 DHT dht(dhtpin, DHTTYPE);                                                                       // 温湿度传感器对象    
+SoftwareSerial espSerial(rx,tx);                                                                // esp8266窗口对象
 
 // 时间字符串
 char date[20], time[10], *week;
+
+// 记录天气的字符串
+String json = "";
+uint8_t weatherStatus[10];
 
 // 文件设置
 char* modeNames[] = 
@@ -163,7 +174,8 @@ char* modeNames[] =
     "CLOCK",
     "MUSIC",
     "IMAGE",
-    "COLOR"
+    "COLOR",
+    "WEATHER"
 };
 
 char* musicPrintNames[] = 
@@ -182,7 +194,7 @@ char* musicPlayNames[] =
     "jojo.wav"
 };
 
-char* videoNames[]=
+char* imagePrintNames[]=
 {
     "1.sight",
     "2.mnist",
@@ -190,7 +202,7 @@ char* videoNames[]=
     "4.comics"
 };
 
-char* dirNames[] = 
+char* imagePlayNames[] = 
 {
     "/sight/",
     "/mnist/",
@@ -198,6 +210,30 @@ char* dirNames[] =
     "/comics/",
 };
 
+char* videoPrintNames[] = 
+{
+    "1.melon",
+    "2.bad apple",
+    "3.weathering with u"
+};
+
+char* videoPlayNames[]=
+{
+    "/Hua Qiang buys melon/",
+    "/bad apple/",
+    "/weathering with you/"
+};
+
+char* cityNames [] = 
+{
+    "beijing",
+    "xining",
+    "taiyuan",
+    "shanghai",
+    "chengdu"
+};
+
+char* imageBaseName = "/weather/"; 
 
 /**********************3.初始状态设定**********************/
 void setup()
@@ -208,10 +244,10 @@ void setup()
     pinMode(IRhigh, OUTPUT);
     pinMode(IRlow, OUTPUT);
     pinMode(SDhigh, OUTPUT);
-    pinMode(SDlow, OUTPUT);
+    //pinMode(SDlow, OUTPUT);
     pinMode(Audiohigh, OUTPUT);
     pinMode(Audiolow, OUTPUT);
-    pinMode(LM35high, OUTPUT);
+    //pinMode(LM35high, OUTPUT);
     pinMode(LM35low, OUTPUT);
     pinMode(DHThigh, OUTPUT);
     pinMode(DHTlow, OUTPUT);
@@ -223,10 +259,10 @@ void setup()
     digitalWrite(IRhigh, HIGH);
     digitalWrite(IRlow, LOW);
     digitalWrite(SDhigh, HIGH);
-    digitalWrite(SDlow, LOW);
+    //digitalWrite(SDlow, LOW);
     digitalWrite(Audiohigh, HIGH);
     digitalWrite(Audiolow, LOW);
-    digitalWrite(LM35high, HIGH);
+    //digitalWrite(LM35high, HIGH);
     digitalWrite(LM35low, LOW);
     digitalWrite(DHThigh, HIGH);
     digitalWrite(DHTlow, LOW);
@@ -236,8 +272,8 @@ void setup()
     // !以下的内容在正式启用的时候一定要关掉
     rtc.writeProtect(false);            //关闭写保护
     rtc.halt(false);                    //清除时钟停止标志
-    Time t(2021, 8, 12, 23, 59, 50, 7); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
-    rtc.time(t);                        //向DS1302设置时32*3间数据
+    //Time t(2021, 9, 2, 9, 0, 30, 5); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
+    //rtc.time(t);                        //向DS1302设置时32*3间数据
 
     tft.begin();
     colorStatus = EEPROM.read(9);
@@ -254,7 +290,8 @@ void setup()
 
     SD.begin(SDIN);
 
-    Serial.begin(9600);
+    Serial.begin(115200);
+    espSerial.begin(9600);
 
     customKeypad.begin();
 
@@ -291,7 +328,7 @@ bool willChangeStatus(uint8_t val, uint8_t id)
     }
 
     // 2.按键值与当前界面不同且合法
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 6; i++)
     {
         if (val == idList[i])
         {
@@ -434,35 +471,18 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     tft.fillTriangle(10, 308, 10, 316, 6, 312, ILI9341_WHITE);
     tft.drawLine(0, 305, 240, 305, ILI9341_WHITE);
     TextSettings(ILI9341_WHITE, 1, 111, 308);
-    tft.print(String(id)+"/5");
+    tft.print(String(id)+"/6");
 
     // 画标题
-    TextSettings(ILI9341_WHITE, 3, 75, 20);
-    tft.print(modeNames[id-1]);
-    /*
-    switch (id)
+    if(id == 6)
     {
-    case 1:
-        tft.print(F("START"));
-        break;
-
-    case 2:
-        tft.print(F("CLOCK"));
-        break;
-
-    case 3:
-        tft.print(F("MUSIC"));
-        break;
-
-    case 4:
-        tft.print(F("IMAGE"));
-        break;
-
-    case 5:
-        tft.print(F("COLOR"));
-        break;
+        TextSettings(ILI9341_WHITE, 3, 55, 20);
     }
-    */
+    else
+    {
+        TextSettings(ILI9341_WHITE, 3, 75, 20);
+    }
+    tft.print(modeNames[id - 1]);
 }
 
 /**************************************************************************/
@@ -487,45 +507,25 @@ void PlayCursor(uint8_t id, uint8_t i, int color)
 
 /**************************************************************************/
 /*!
-    @brief   播放视频(图片)
-    @param   id    界面的标识
-    @param   i     光标位置
-    @param   color 光标颜色
+    @brief   播放图片和视频
+    @param   id      界面的标识
+    @param   isDelay 是否延迟(即决定播放图片还是音乐)
 */
 /**************************************************************************/
-void PlayVideo(uint8_t id)
+void PlayPhoto(uint8_t id)
 {
+    uint16_t xbegin = 0;
+    uint16_t ybegin = 0;
     String before;
     String after(".bmp");
     String filename;
-
-    before = dirNames[id-1];
-    /*
-    switch (id)
-    {
-    case 1:
-        before = "/1/";
-        break;
-
-    case 2:
-        before = "/2/";
-        break;
-    
-    case 3:
-        before = "/3/";
-        break;
-
-    case 4:
-        before = "/4/";
-        break;
-    }
-    */
+    before = imagePlayNames[id-1];
 
     uint16_t num = 1;
     while (1)
     {
         filename = before + num + after;
-        stat = reader.drawBMP(filename.c_str(), tft, 0, 0);
+        stat = reader.drawBMP(filename.c_str(), tft, xbegin, ybegin);
         if (stat != IMAGE_SUCCESS) // 若获取图片失败
         {
             break;
@@ -547,6 +547,35 @@ void PlayVideo(uint8_t id)
         num++;
     }
 }
+
+/**************************************************************************/
+/*!
+    @brief   播放城市天气的子界面
+    @param   id      城市(游标)序列
+*/
+/**************************************************************************/
+void PlayCityWeather(int id)
+{
+    PrintBase(6);
+
+    TextSettings(ILI9341_WHITE, 2, 75, 60);
+    tft.println(cityNames[id-1]);
+
+    TextSettings(ILI9341_WHITE, 2, 65, 220);
+    tft.print(F("TEMP:"));
+    tft.print(weatherStatus[2 * id - 1]);
+    tft.print(F(" C"));
+
+    String imageName = imageBaseName+String(weatherStatus[2*(id-1)])+"@2x.bmp";
+    stat = reader.drawBMP(imageName.c_str(), tft, 65, 90);
+
+    if(weatherStatus[2*(id-1)]>=10&&weatherStatus[2*(id-1)]<=18)
+    {
+        TextSettings(warningColor,2,20,270);
+        tft.println("Take an umbrella!"); // suggestion when raining.
+    }
+}
+
 
 /**********************5.界面类函数**********************/
 void UI_1() // 一号界面,也是初始界面,显示时间
@@ -603,24 +632,6 @@ void UI_1() // 一号界面,也是初始界面,显示时间
             {
                 tmrpcm.setVolume(volume);
                 tmrpcm.play(musicPlayNames[alarmMusic-1]);
-                /*
-                if (alarmMusic == 1)
-                {
-                    tmrpcm.play("badapple.wav");
-                }
-                else if (alarmMusic == 2)
-                {
-                    tmrpcm.play("twotigers.wav");
-                }
-                else if (alarmMusic == 3)
-                {
-                    tmrpcm.play("lostrivers.wav");
-                }
-                else if (alarmMusic == 4)
-                {
-                    tmrpcm.play("jojo.wav");
-                }
-                */
             }
             
             // TODO 播放音乐
@@ -876,20 +887,11 @@ void UI_3()
 
     // 显示歌单
     TextSettings(ILI9341_WHITE, 2, 20, 46);
-    for(int i = 0;i<4;i++)
+    for (int i = 0; i < 4; i++)
     {
         tft.println(musicPrintNames[i]);
-        tft.setCursor(20,66+i*20);
+        tft.setCursor(20, 66 + i * 20);
     }
-    /*
-    tft.println(F("1.Bad Apple"));
-    tft.setCursor(20, 66);
-    tft.println(F("2.Two Tigers"));
-    tft.setCursor(20, 86);
-    tft.println(F("3.Lost Rivers"));
-    tft.setCursor(20, 106);
-    tft.println(F("4.JOJO"));
-    */
 
     // 光标
     uint8_t cursorPosition = 1;
@@ -957,24 +959,6 @@ void UI_3()
                 }
                 tmrpcm.setVolume(volume);
                 tmrpcm.play(musicPlayNames[cursorPosition-1]);
-                /*
-                if (cursorPosition == 1)
-                {
-                    tmrpcm.play("badapple.wav");
-                }
-                else if (cursorPosition == 2)
-                {
-                    tmrpcm.play("twotigers.wav");
-                }
-                else if (cursorPosition == 3)
-                {
-                    tmrpcm.play("lostrivers.wav");
-                }
-                else if (cursorPosition == 4)
-                {
-                    tmrpcm.play("jojo.wav");
-                }
-                */
                 delay(3000);
                 tft.fillRect(15, 245, 210, 34, backgroundColor);
             }
@@ -1004,18 +988,9 @@ void UI_4()
     TextSettings(ILI9341_WHITE, 2, 20, 46);
     for(int i = 0;i<4;i++)
     {
-        tft.println(videoNames[i]);
+        tft.println(imagePrintNames[i]);
         tft.setCursor(20,66+i*20);
     }
-    /*
-    tft.println(F("1.sight"));
-    tft.setCursor(20, 66);
-    tft.println(F("2.mnist"));
-    tft.setCursor(20, 86);
-    tft.println(F("3.cyberpunk"));
-    tft.setCursor(20, 106);
-    tft.println(F("4.comics"));
-    */
 
     // 光标
     uint8_t cursorPosition = 1;
@@ -1054,7 +1029,7 @@ void UI_4()
                 tft.print(F("Playing..."));
                 // 播放"视频"
                 tft.fillScreen(backgroundColor);
-                PlayVideo(cursorPosition);
+                PlayPhoto(cursorPosition);
                 tft.setCursor(60, 250);
                 tft.println("the end");
                 delay(5000);
@@ -1142,6 +1117,104 @@ warningColor = p[2];
 infoColor = p[3];
 }
 
+void UI_6()
+{
+    PrintBase(6);
+    uint8_t cursorPosition = 1;
+    bool getStatus = false; // 判断是否接受到了字符串
+
+    // 显示主题
+    TextSettings(ILI9341_WHITE, 2, 20, 46);
+
+    while (1)
+    {
+        // 数据请求
+        static int lastTime = millis();
+        //Serial.println(espSerial.available());
+        if (espSerial.available() > 0)
+        {
+            json = "{\"0\":";
+            json += espSerial.readString();
+            json += "}";
+            Serial.println(json);
+        }
+
+        // 数据解析
+        DynamicJsonDocument doc(1024);                           //声明一个JsonDocument对象
+        DeserializationError error = deserializeJson(doc, json); //反序列化JSON数据
+        if (!error)
+        {
+            weatherStatus[0] = doc["0"];
+            weatherStatus[1] = doc["1"];
+            weatherStatus[2] = doc["2"];
+            weatherStatus[3] = doc["3"];
+            weatherStatus[4] = doc["4"];
+            weatherStatus[5] = doc["5"];
+            weatherStatus[6] = doc["6"];
+            weatherStatus[7] = doc["7"];
+            weatherStatus[8] = doc["8"];
+            weatherStatus[9] = doc["9"];
+        }
+        if(weatherStatus[1] == 0)
+        {
+            getStatus = false;
+            TextSettings(warningColor,3,20,160);
+            tft.println("loading...");
+            customKeypad.tick();
+            if(customKeypad.available())
+            {
+                e = customKeypad.read();
+                if (willChangeStatus(e.bit.KEY, 6))
+                {
+                    status = e.bit.KEY;
+                    goto Label6;
+                }
+            }
+        }
+        else
+        {
+            if(!getStatus)
+            {
+                tft.fillRect(20,160,200,25,backgroundColor); // 覆盖原有的提示
+                getStatus = true;
+            }
+            PlayCityWeather(cursorPosition);
+
+            customKeypad.tick();
+            if (customKeypad.available())
+            {
+                e = customKeypad.read();
+                if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    cursorPosition--;
+                    if (cursorPosition == 0)
+                    {
+                        cursorPosition = 5;
+                    }
+                    tft.fillScreen(backgroundColor);
+                }
+                else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    cursorPosition++;
+                    if (cursorPosition == 6)
+                    {
+                        cursorPosition = 1;
+                    }
+                    tft.fillScreen(backgroundColor);
+                }
+                else if (willChangeStatus(e.bit.KEY, 6))
+                {
+                    status = e.bit.KEY;
+                    goto Label6;
+                }
+            }
+        }
+        json="";
+    }
+
+Label6:;
+}
+
 /**************************6.主循环界面**************************/
 void loop()
 {
@@ -1183,6 +1256,12 @@ void loop()
     {
         tft.fillScreen(backgroundColor);
         UI_5();
+    }
+
+    else if(status == 6)
+    {
+        tft.fillScreen(backgroundColor);
+        UI_6();
     }
 
     else

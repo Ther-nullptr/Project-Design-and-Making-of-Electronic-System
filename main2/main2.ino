@@ -10,7 +10,7 @@
 #include <SoftwareSerial.h>
 
 /****************1.基本常量******************/
-const char auth[] = "0b174fa5860d";     //从blinker应用上得到的设备密钥
+const char auth[] = "29fa581e93d0";     //从blinker应用上得到的设备密钥
 const char ssid[] = "Honor 10";         //wifi名
 const char pswd[] = "12345678";         //wifi密码
 const char host[] = "api.seniverse.com";//API地址
@@ -107,7 +107,7 @@ void AC_control()
 
 void setup()
 {
-    // Serial.begin(115200);
+    Serial.begin(115200);
     arduinoSerial.begin(9600);
     //BLINKER_DEBUG.stream(Serial);
 
@@ -148,6 +148,7 @@ void loop()
                         +"&location=" + locationList[i] + "&language=en&unit=c";
         weatherList += httpRequest(reqRes,i);
     }
+    Serial.println(weatherList);
     arduinoSerial.println(weatherList);
     weatherList="";
 
@@ -254,14 +255,14 @@ String httpRequest(String reqRes,int i)
         {
             json+=",";
         }
-        // arduinoSerial.println(json);
+        Serial.println(json);
 
-        // Serial.println(F("======Weather Now======="));
-        // Serial.print(F("weather: "));
-        // Serial.println(results_0_daily_code);
-        // Serial.print(F("temp: "));
-        // Serial.println(results_0_daily_temperature);
-        // Serial.println(F("========================"));
+         Serial.println(F("======Weather Now======="));
+         Serial.print(F("weather: "));
+         Serial.println(results_0_daily_code);
+         Serial.print(F("temp: "));
+         Serial.println(results_0_daily_temperature);
+         Serial.println(F("========================"));
     }
     else
     {
@@ -272,27 +273,3 @@ String httpRequest(String reqRes,int i)
     return json;
 }
 
-// 利用ArduinoJson库解析心知天气响应信息
-String parseInfo(WiFiClient client)
-{
-    DynamicJsonDocument doc(1024);
-
-    deserializeJson(doc, client);
-
-    JsonObject results_0 = doc["results"][0];
-
-    JsonObject results_0_daily = results_0["now"];
-    String results_0_daily_code = results_0_daily["code"];          
-    String results_0_daily_temperature = results_0_daily["temperature"];               
-
-    // 组装为json字符串准备发送
-    String json = "{\"a\":\""+results_0_daily_code+"\",\"b\":\""+results_0_daily_temperature+"\"}\n";
-    arduinoSerial.println(json);
-
-    // Serial.println(F("======Weather Now======="));
-    // Serial.print(F("weather: "));
-    // Serial.println(results_0_daily_code);
-    // Serial.print(F("temp: "));
-    // Serial.println(results_0_daily_temperature);
-    // Serial.println(F("========================"));
-}
