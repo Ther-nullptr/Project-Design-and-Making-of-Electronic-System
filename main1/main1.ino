@@ -178,6 +178,8 @@ char* modeNames[] =
     "WEATHER"
 };
 
+const int musicNum = 4;
+
 char* musicPrintNames[] = 
 {
     "1.Bad Apple",
@@ -194,6 +196,8 @@ char* musicPlayNames[] =
     "jojo.wav"
 };
 
+const int imageFolderNum = 4;
+
 char* imagePrintNames[]=
 {
     "1.sight",
@@ -208,20 +212,6 @@ char* imagePlayNames[] =
     "/mnist/",
     "/cyberpunk/",
     "/comics/",
-};
-
-char* videoPrintNames[] = 
-{
-    "1.melon",
-    "2.bad apple",
-    "3.weathering with u"
-};
-
-char* videoPlayNames[]=
-{
-    "/Hua Qiang buys melon/",
-    "/bad apple/",
-    "/weathering with you/"
 };
 
 char* cityNames [] = 
@@ -561,6 +551,7 @@ void PlayCityWeather(int id)
     TextSettings(ILI9341_WHITE, 2, 75, 60);
     tft.println(cityNames[id-1]);
 
+    stat = reader.drawBMP("temp.bmp",tft,50,220);
     TextSettings(ILI9341_WHITE, 2, 65, 220);
     tft.print(F("TEMP:"));
     tft.print(weatherStatus[2 * id - 1]);
@@ -587,11 +578,13 @@ void UI_1() // 一号界面,也是初始界面,显示时间
 
     uint8_t h = dht.readHumidity();
     uint8_t t = dht.readTemperature();
-    TextSettings(ILI9341_WHITE,2,30,170);
+    stat = reader.drawBMP("temp.bmp", tft, 10, 170);
+    TextSettings(successColor, 2, 30, 170);
     tft.print(F("temperature:"));
     tft.print(t);
     tft.print(F("C"));
-    TextSettings(ILI9341_WHITE,2,30,190);
+    stat = reader.drawBMP("humi.bmp", tft, 10, 190);
+    TextSettings(infoColor, 2, 30, 190);
     tft.print(F("humidity:"));
     tft.print(h);
     tft.print(F("%"));
@@ -607,14 +600,14 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         static uint8_t last_humi = 0;
         if (last_temp != t)
         {
-            TextSettings(ILI9341_WHITE, 2, 172, 170);
+            TextSettings(successColor, 2, 172, 170);
             tft.fillRect(172, 170, 24, 18, backgroundColor);
             tft.print(t);
         }
         last_temp = t;
         if (last_humi != h)
         {
-            TextSettings(ILI9341_WHITE, 2, 136, 190);
+            TextSettings(infoColor, 2, 136, 190);
             tft.fillRect(136, 190, 24, 18, backgroundColor);
             tft.print(h);
         }
@@ -908,7 +901,7 @@ void UI_3()
                 cursorPosition--;
                 if (cursorPosition == 0)
                 {
-                    cursorPosition = 4;
+                    cursorPosition = musicNum;
                 }
                 PlayCursor(3, cursorPosition, ILI9341_WHITE);
             }
@@ -916,7 +909,7 @@ void UI_3()
             {
                 PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
-                if (cursorPosition == 5)
+                if (cursorPosition == musicNum+1)
                 {
                     cursorPosition = 1;
                 }
@@ -1007,7 +1000,7 @@ void UI_4()
                 cursorPosition--;
                 if (cursorPosition == 0)
                 {
-                    cursorPosition = 4;
+                    cursorPosition = imageFolderNum;
                 }
                 PlayCursor(3, cursorPosition, ILI9341_WHITE);
             }
@@ -1015,7 +1008,7 @@ void UI_4()
             {
                 PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
-                if (cursorPosition == 5)
+                if (cursorPosition == imageFolderNum+1)
                 {
                     cursorPosition = 1;
                 }
@@ -1173,6 +1166,7 @@ void UI_6()
         }
         else
         {
+            is_Wifi = true;
             if(!getStatus)
             {
                 tft.fillRect(20,160,200,25,backgroundColor); // 覆盖原有的提示
@@ -1266,6 +1260,6 @@ void loop()
 
     else
     {
-        status = 1;
+        //status = 1;
     }
 }
