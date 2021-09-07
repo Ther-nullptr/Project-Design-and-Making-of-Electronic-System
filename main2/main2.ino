@@ -32,8 +32,9 @@ String weatherList;
 // 全局变量
 uint8_t temp_read = 0;
 uint8_t goalTemp = 28; // 室内想要达到的温度
-uint8_t ACTemp = 25;
-bool power = false;
+uint8_t ACTemp = 25; // 默认的空调温度
+bool power = false; // 空调是否开启
+bool underControl = true; // IoT是否控制空调
 uint8_t fanSpeed = 0; // 0为自动,1-3风速依次增加
 
 // 新建组件对象
@@ -85,26 +86,6 @@ void AC_control()
     ac.send();
 }
 
-// 获取天气数据
-// void ForecastData(const String & data)
-// {
-//     BLINKER_LOG("weather: ",data);
-//     StaticJsonDocument<400> doc;
-//     DeserializationError error = deserializeJson(doc,data);
-//     if(error)
-//     {
-//         Serial.print("error is:");
-//         Serial.println(error.c_str());
-//         return;
-//     }
-// }
-
-// 获取空气质量数据
-// void AirData(const String & data)
-// {
-//     BLINKER_LOG("air: ", data);
-// }
-
 void setup()
 {
     Serial.begin(115200);
@@ -114,8 +95,6 @@ void setup()
     // Blinker组件初始化
     Blinker.begin(auth, ssid, pswd);
     Blinker.attachHeartbeat(heartbeat);
-    //Blinker.attachWeather(ForecastData);
-    //Blinker.attachAir(AirData);
 
     // 传感器初始化
     sensors.begin();
@@ -138,8 +117,7 @@ void loop()
 {
     static unsigned long time = 0;
     Blinker.run();
-    //Blinker.weather(110108);
-    //Blinker.air(110108);
+
     // 建立心知天气API当前天气请求资源地址
     //weatherList = "{";
     for (int i = 0; i < 5; i++)
@@ -192,6 +170,23 @@ void loop()
     {
         time = millis();
         AC_control();
+    }
+
+    // 读取收到的数据
+    if(arduinoSerial.available()>0)
+    {
+        // 读取控制温度的信息
+        uint8_t tmp = arduinoSerial.read();
+        Serial.println(tmp);
+        if(tmp == 0) // IoT控制空调关闭
+        {
+            underControl = false;
+        }
+        else // IoT控制空调开启
+        {
+            underControl = true;
+            goalTemp = tmp;
+        }
     }
 }
 
@@ -257,12 +252,12 @@ String httpRequest(String reqRes,int i)
         }
         Serial.println(json);
 
-         Serial.println(F("======Weather Now======="));
-         Serial.print(F("weather: "));
-         Serial.println(results_0_daily_code);
-         Serial.print(F("temp: "));
-         Serial.println(results_0_daily_temperature);
-         Serial.println(F("========================"));
+        Serial.println(F("======Weather Now======="));
+        Serial.print(F("weather: "));
+        Serial.println(results_0_daily_code);
+        Serial.print(F("temp: "));
+        Serial.println(results_0_daily_temperature);
+        Serial.println(F("========================"));
     }
     else
     {

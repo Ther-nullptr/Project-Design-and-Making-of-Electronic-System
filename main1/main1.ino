@@ -175,7 +175,8 @@ char* modeNames[] =
     "MUSIC",
     "IMAGE",
     "COLOR",
-    "WEATHER"
+    "WEATHER",
+    "ACSET"
 };
 
 const int musicNum = 4;
@@ -224,6 +225,7 @@ char* cityNames [] =
 };
 
 char* imageBaseName = "/weather/"; 
+const int UINum = 7;
 
 /**********************3.初始状态设定**********************/
 void setup()
@@ -267,7 +269,7 @@ void setup()
 
     tft.begin();
     colorStatus = EEPROM.read(9);
-    if(colorStatus == 255)
+    if(colorStatus == CLEAR)
     {
         colorStatus = 1;
     }
@@ -318,7 +320,7 @@ bool willChangeStatus(uint8_t val, uint8_t id)
     }
 
     // 2.按键值与当前界面不同且合法
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         if (val == idList[i])
         {
@@ -461,7 +463,7 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     tft.fillTriangle(10, 308, 10, 316, 6, 312, ILI9341_WHITE);
     tft.drawLine(0, 305, 240, 305, ILI9341_WHITE);
     TextSettings(ILI9341_WHITE, 1, 111, 308);
-    tft.print(String(id)+"/6");
+    tft.print(String(id)+"/"+String(7));
 
     // 画标题
     if(id == 6)
@@ -734,7 +736,7 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
             {
             SetClock:;
                 PlayCursor(2, cursorPosition, successColor);
-                if (cursorPosition == 0) // 设定闹钟
+                if (cursorPosition == false) // 设定闹钟
                 {
                     TextSettings(ILI9341_WHITE, 1, 30, 80);
                     tft.print(F("Set the time:"));
@@ -849,7 +851,7 @@ void UI_2() // 二号界面,闹钟的设置,删除和展示
                                 delay(2000);
                                 for (uint8_t i = 0; i < 3; i++)
                                 {
-                                    EEPROM.write(i, 255);
+                                    EEPROM.write(i, CLEAR);
                                 }
                                 is_clock = false;
                                 tft.fillRect(20, 160, 200, 30, backgroundColor);
@@ -1209,6 +1211,153 @@ void UI_6()
 Label6:;
 }
 
+void UI_7()
+{
+    PrintBase(7);
+    TextSettings(infoColor, 3, 20, 50);
+    tft.print(F("SET AC"));
+
+    TextSettings(warningColor, 3, 20, 130);
+    tft.print(F("DEL AC"));
+
+    TextSettings(successColor, 3, 20, 210);
+    tft.print(F("AC STATUS"));
+
+    TextSettings(ILI9341_WHITE, 2, 40, 240);
+    if (EEPROM.read(3) == CLEAR) // 当前物联网系统没有控制空调
+    {
+        tft.print(F("Closed"));
+    }
+    else
+    {
+        String msg = "Lowest temp: "+String(EEPROM.read(4))+" C"; 
+        tft.print(msg);
+    }
+
+    bool cursorPosition = 0;
+    PlayCursor(2, cursorPosition, ILI9341_WHITE);
+    while (1)
+    {
+        customKeypad.tick();
+        if (customKeypad.available())
+        {
+            e = customKeypad.read();
+            delay(10);
+            if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                PlayCursor(2, cursorPosition, backgroundColor);
+                cursorPosition = !cursorPosition;
+                PlayCursor(2, cursorPosition, ILI9341_WHITE);
+            }
+            else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                PlayCursor(2, cursorPosition, backgroundColor);
+                cursorPosition = !cursorPosition;
+                PlayCursor(2, cursorPosition, ILI9341_WHITE);
+            }
+            else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                PlayCursor(2, cursorPosition, successColor);
+                if (cursorPosition == 0) // 设定控制空调的系统是否打开
+                {
+                    TextSettings(ILI9341_WHITE, 1, 30, 80);
+                    tft.print(F("Set the lowest temperature:"));
+                    uint8_t tempArray[2];
+                    // 设置闹钟时间
+                    for (uint8_t i = 0; i < 2; i++)
+                    {
+                        tft.drawLine(i * 8 + 192, 90, i * 8 + 200, 90, ILI9341_WHITE);
+                        while (1)
+                        {
+                            customKeypad.tick();
+                            if (customKeypad.available())
+                            {
+                                e = customKeypad.read();
+                                delay(10);
+                                if (e.bit.EVENT == KEY_JUST_PRESSED && IsNumber(e.bit.KEY))
+                                {
+                                    tempArray[i] = e.bit.KEY;
+                                    tft.setCursor(i * 8 + 192, 80);
+                                    tft.print(e.bit.KEY);
+                                    tft.drawLine(i * 8 + 192, 90, i * 8 + 200, 90, backgroundColor);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    tft.setCursor(30, 110);
+                    tft.print(F("Press Enter to Continue."));
+                    while (1)
+                    {
+                        customKeypad.tick();
+                        if (customKeypad.available())
+                        {
+                            e = customKeypad.read();
+                            delay(10);
+                            if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
+                            {
+                                tft.fillRect(30, 110, 200, 7, backgroundColor);
+                                TextSettings(successColor, 1, 30, 110);
+                                tft.print(F("Success!"));
+                                delay(2000);
+                                // 将温度信息写入EEPROM
+                                uint8_t temp = tempArray[0] * 10 + tempArray[1];
+                                EEPROM.write(4, temp);
+                                // 打印温度设置
+                                tft.fillRect(30, 80, 200, 40, backgroundColor);
+                                tft.fillRect(40, 240, 200, 40, backgroundColor);
+                                TextSettings(ILI9341_WHITE, 2, 40, 240);
+                                String msg = "The AC will open when it is higher than "+String(EEPROM.read(4))+" C"; 
+                                tft.print(msg);
+                                // 向esp8266发送数据
+                                espSerial.println(temp);
+                                break;
+                            }
+                        }
+                    }
+                }
+                else // 删除闹钟
+                {
+                    TextSettings(warningColor, 1, 20, 160);
+                    tft.println(F("This will shutdown the AC system!"));
+                    tft.setCursor(20, 170);
+                    tft.println(F("Press Enter to continue."));
+                    while (1)
+                    {
+                        customKeypad.tick();
+                        if (customKeypad.available())
+                        {
+                            e = customKeypad.read();
+                            delay(10);
+                            if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
+                            {
+                                TextSettings(successColor, 1, 20, 180);
+                                tft.println(F("Success!"));
+                                delay(2000);
+                                for (uint8_t i = 3; i < 4; i++)
+                                {
+                                    EEPROM.write(i, CLEAR);
+                                }
+                                tft.fillRect(20, 160, 200, 30, backgroundColor);
+                                tft.fillRect(40, 240, 200, 20, backgroundColor);
+                                // 向esp8266发送数据(当然,一般不会把空调阈值温度设置为0)
+                                espSerial.println(0);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (willChangeStatus(e.bit.KEY, 7))
+            {
+                status = e.bit.KEY;
+                goto Label7;
+            }
+        }
+    }
+Label7:;
+}
+
 /**************************6.主循环界面**************************/
 void loop()
 {
@@ -1258,8 +1407,15 @@ void loop()
         UI_6();
     }
 
+    else if(status == 7)
+    {
+        tft.fillScreen(backgroundColor);
+        UI_7();
+    }
+
     else
     {
-        status = 1;
+        Serial.println("a error happens");
+        //status = 1;
     }
 }
