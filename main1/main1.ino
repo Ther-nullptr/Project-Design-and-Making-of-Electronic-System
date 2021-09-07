@@ -139,7 +139,7 @@ int infoColor = colors[0][3];
 
 // 设定设备状态的状态值
 volatile uint8_t status = 1;
-const uint8_t idList[] = {1, 2, 3, 4, 5, 6};
+// const uint8_t idList[] = {1, 2, 3, 4, 5, 6};
 
 // 控制程序第一次是否清屏
 bool flag = true;
@@ -322,7 +322,7 @@ bool willChangeStatus(uint8_t val, uint8_t id)
     // 2.按键值与当前界面不同且合法
     for (int i = 0; i < 7; i++)
     {
-        if (val == idList[i])
+        if (val == i + 1)
         {
             return true;
         }
@@ -1230,7 +1230,11 @@ void UI_7()
     }
     else
     {
-        String msg = "Lowest temp: "+String(EEPROM.read(4))+" C"; 
+        TextSettings(infoColor, 2, 40, 240);
+        String msg = "goal temp: " + String(EEPROM.read(4)) + " C";
+        tft.print(msg);
+        TextSettings(successColor, 2, 40, 260);
+        msg = "AC temp: " + String(EEPROM.read(4) - 2) + " C";
         tft.print(msg);
     }
 
@@ -1257,11 +1261,12 @@ void UI_7()
             }
             else if (e.bit.KEY == ENTER && e.bit.EVENT == KEY_JUST_PRESSED)
             {
+            SetTemperature:;
                 PlayCursor(2, cursorPosition, successColor);
                 if (cursorPosition == 0) // 设定控制空调的系统是否打开
                 {
                     TextSettings(ILI9341_WHITE, 1, 30, 80);
-                    tft.print(F("Set the lowest temperature:"));
+                    tft.print(F("Set the goal temperature:"));
                     uint8_t tempArray[2];
                     // 设置闹钟时间
                     for (uint8_t i = 0; i < 2; i++)
@@ -1280,6 +1285,18 @@ void UI_7()
                                     tft.setCursor(i * 8 + 192, 80);
                                     tft.print(e.bit.KEY);
                                     tft.drawLine(i * 8 + 192, 90, i * 8 + 200, 90, backgroundColor);
+                                    // 对温度合法性的判定，此处为便于管理，将温度设置为20~30 C
+                                    if(i == 1)
+                                    {
+                                        if (tempArray[0] * 10 + tempArray[1] <20 || tempArray[0] * 10 + tempArray[1]> 30)
+                                        {
+                                            TextSettings(warningColor, 1, 20, 95);
+                                            tft.print("illegal temp (must 20 ~ 30 c)");
+                                            delay(2000);
+                                            tft.fillRect(20, 80, 200, 40, backgroundColor);
+                                            goto SetTemperature;
+                                        }
+                                    }
                                     break;
                                 }
                             }
@@ -1302,13 +1319,18 @@ void UI_7()
                                 delay(2000);
                                 // 将温度信息写入EEPROM
                                 uint8_t temp = tempArray[0] * 10 + tempArray[1];
+                                EEPROM.write(3, 1);
                                 EEPROM.write(4, temp);
                                 // 打印温度设置
                                 tft.fillRect(30, 80, 200, 40, backgroundColor);
                                 tft.fillRect(40, 240, 200, 40, backgroundColor);
-                                TextSettings(ILI9341_WHITE, 2, 40, 240);
-                                String msg = "The AC will open when it is higher than "+String(EEPROM.read(4))+" C"; 
+                                TextSettings(infoColor, 2, 40, 240);
+                                String msg = "goal temp: " + String(EEPROM.read(4)) + " C";
                                 tft.print(msg);
+                                TextSettings(successColor, 2, 40, 260);
+                                msg = "AC temp: " + String(EEPROM.read(4) - 2) + " C";
+                                tft.print(msg);
+                                Serial.println(temp);
                                 // 向esp8266发送数据
                                 espSerial.println(temp);
                                 break;
@@ -1339,7 +1361,7 @@ void UI_7()
                                     EEPROM.write(i, CLEAR);
                                 }
                                 tft.fillRect(20, 160, 200, 30, backgroundColor);
-                                tft.fillRect(40, 240, 200, 20, backgroundColor);
+                                tft.fillRect(40, 240, 200, 40, backgroundColor);
                                 // 向esp8266发送数据(当然,一般不会把空调阈值温度设置为0)
                                 espSerial.println(0);
                                 break;

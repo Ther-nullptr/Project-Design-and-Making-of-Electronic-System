@@ -42,6 +42,7 @@ BlinkerNumber POWER("power");         // blinker需要监视的对象(开关)
 BlinkerNumber TEMP("temp");           // blinker需要监视的对象(温度)
 BlinkerNumber AC_TEMP("AC_temp");     // blinker需要监视的对象(空调温度)
 BlinkerNumber FANSPEED("fanSpeed");   // blinker需要监视的对象(风速)
+BlinkerNumber UNDERCONTROL("Auto");
 OneWire oneWire(one_wire_bus);        // 初始连接在单总线上的单总线设备
 DallasTemperature sensors(&oneWire);  // 温度控制器对象
 IRGreeAC ac(kIrLed);                  // Set the GPIO to be used for sending messages.
@@ -57,6 +58,7 @@ void heartbeat()
     TEMP.print(temp_read);
     AC_TEMP.print(ACTemp);
     FANSPEED.print(fanSpeed);
+    UNDERCONTROL.print(underControl);
 }
 
 // 控制空调,并更新空调状态
@@ -158,13 +160,15 @@ void loop()
     {
         power = true;
         ACTemp = goalTemp - 2;
-        fanSpeed = 0;
+        fanSpeed = 1;
     }
     else
     {
         power = false;
+        ACTemp = goalTemp - 2;
+        fanSpeed = 1;
     }
-    delay(15000);
+    delay(10000);
     Blinker.delay(2000);
     if(millis() - time >= 1000*30)
     {
@@ -176,16 +180,16 @@ void loop()
     if(arduinoSerial.available()>0)
     {
         // 读取控制温度的信息
-        uint8_t tmp = arduinoSerial.read();
+        String tmp = arduinoSerial.readString();
         Serial.println(tmp);
-        if(tmp == 0) // IoT控制空调关闭
+        if(tmp.toInt() == 0) // IoT控制空调关闭
         {
             underControl = false;
         }
         else // IoT控制空调开启
         {
             underControl = true;
-            goalTemp = tmp;
+            goalTemp = tmp.toInt();
         }
     }
 }
