@@ -571,6 +571,7 @@ namespace game
     int gameData[4][4]; // 储存游戏的数据
     int score = 0;      // 游戏分数
     int highestscore;   // 最高分数
+    int blockColor[] = {ILI9341_WHITE, ILI9341_RED, ILI9341_ORANGE, ILI9341_YELLOW, ILI9341_GREENYELLOW, ILI9341_GREEN, ILI9341_CYAN, ILI9341_BLUE, ILI9341_PURPLE};
 
     enum Direction
     {
@@ -579,6 +580,19 @@ namespace game
         left,
         right
     };
+
+    // 一个用于计算log2的辅助函数
+    int FastLog2(int x)
+    {
+        float fx;
+        unsigned long ix, exp;
+
+        fx = (float)x;
+        ix = *(unsigned long *)&fx;
+        exp = (ix >> 23) & 0xFF;
+
+        return exp - 127;
+    }
 
     int getDataLength() // 统计当前格子中存在的方块数
     {
@@ -632,7 +646,7 @@ namespace game
     void printInfo()
     {
         tft.setTextSize(1);
-        tft.setTextColor(ILI9341_WHITE);
+        // tft.setTextColor(ILI9341_WHITE);
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -641,6 +655,8 @@ namespace game
                 if (gameData[i][j] != 0)
                 {
                     tft.setCursor(50 + j * 40, 120 + i * 40);
+                    int color = blockColor[FastLog2(gameData[i][j])-1];
+                    tft.setTextColor(color);
                     tft.print(gameData[i][j]);
                 }
             }
@@ -1837,7 +1853,6 @@ void loop()
 
     else
     {
-
         Serial.println("wrong");
         //status = 1;
     }
