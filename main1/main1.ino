@@ -598,9 +598,9 @@ namespace game
 
     void setNum() // 放置新的方块
     {
-        randomSeed(analogRead(0));
+        randomSeed(analogRead(A7));
         int random1 = int(2 * (random(1, 2)));              // 获取新生成的方块的值(2或4)
-        int random2 = int(random(0, 17 - getDataLength())); // 获取生成位置
+        int random2 = int(random(0, 16 - getDataLength())); // 获取生成位置
         // printf("%d",random2);
         for (int i = 0; i < 4; i++)
         {
@@ -608,19 +608,18 @@ namespace game
             {
                 if (gameData[i][j] == 0)
                 {
-                    random2--;
                     if (random2 == 0)
                     {
                         gameData[i][j] = random1;
                     }
+                    random2--;
                 }
             }
         }
     }
 
-    void getScore()
+    void updateScore()
     {
-        score = 0;
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -638,21 +637,35 @@ namespace game
         {
             for (int j = 0; j < 4; j++)
             {
+                tft.fillRect(50 + j * 40, 120 + i * 40, 24, 24, backgroundColor);
                 if (gameData[i][j] != 0)
                 {
-                    tft.fillRect(50 + i * 40, 110 + i * 40, 10, 10, backgroundColor);
-                    tft.setCursor(50 + i * 40, 110 + i * 40);
+                    tft.setCursor(50 + j * 40, 120 + i * 40);
                     tft.print(gameData[i][j]);
                 }
             }
         }
     }
 
+    void debugPrint()
+    {
+        for(int i = 0;i<4;i++)
+        {
+            for(int j = 0;j<4;j++)
+            {
+                Serial.print(gameData[i][j]);
+                Serial.print('\t');
+            }
+            Serial.println();
+        }
+        Serial.println("===============");
+    }
+
     void move(enum Direction direction)
     {
         switch (direction)
         {
-        case UP:
+        case game::Direction::up:
             for (int col = 0; col < 4; col++)
             {
                 for (int row = 1; row < 4; row++)
@@ -703,7 +716,7 @@ namespace game
                 }
             }
             break;
-        case DOWN:
+        case game::Direction::down:
             for (int col = 0; col < 4; col++)
             {
                 for (int row = 2; row >= 0; row--)
@@ -754,7 +767,7 @@ namespace game
                 }
             }
             break;
-        case LEFT:
+        case game::Direction::left:
             for (int row = 0; row < 4; row++)
             {
                 for (int col = 1; col < 4; col++)
@@ -805,7 +818,7 @@ namespace game
                 }
             }
             break;
-        case RIGHT:
+        case game::Direction::right:
             for (int row = 0; row < 4; row++)
             {
                 for (int col = 2; col >= 0; col--)
@@ -1671,6 +1684,7 @@ Label7:;
 
 void UI_8()
 {
+StartGame:;
     PrintBase(8);
     // 游戏说明
     TextSettings(ILI9341_WHITE, 1, 20, 50);
@@ -1688,50 +1702,74 @@ void UI_8()
     {
         game::highestscore = 0;
     }
-    TextSettings(infoColor, 2, 20, 220);
+    TextSettings(infoColor, 1, 20, 280);
     tft.print(F("score: "));
-    TextSettings(successColor, 2, 20, 250);
+    TextSettings(successColor, 1, 20, 290);
     tft.print(F("highest score: "));
     tft.print(game::highestscore);
 
     // 游戏运行界面
-    tft.drawRect(40, 100, 160, 160, ILI9341_WHITE);
+    tft.drawRect(40, 110, 160, 160, ILI9341_WHITE);
     while (1)
     {
-        game::printInfo();
-        customKeypad.tick();
-        if (customKeypad.available())
+        while (1)
         {
-            e = customKeypad.read();
-            if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
+            customKeypad.tick();
+            if (customKeypad.available())
             {
-                game::move(game::Direction::up);
-            }
-            else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
-            {
-                game::move(game::Direction::down);
-            }
-            else if (e.bit.KEY == LEFT && e.bit.EVENT == KEY_JUST_PRESSED)
-            {
-                game::move(game::Direction::left);
-            }
-            else if (e.bit.KEY == RIGHT && e.bit.EVENT == KEY_JUST_PRESSED)
-            {
-                game::move(game::Direction::right);
-            }
-            else if (willChangeStatus(e.bit.KEY, 8))
-            {
-                status = e.bit.KEY;
-                goto Label8;
+                game::setNum();
+                e = customKeypad.read();
+                delay(100);
+                if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    game::move(game::Direction::up);
+                }
+                else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    game::move(game::Direction::down);
+                }
+                else if (e.bit.KEY == LEFT && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    game::move(game::Direction::left);
+                }
+                else if (e.bit.KEY == RIGHT && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    game::move(game::Direction::right);
+                }
+                else if (willChangeStatus(e.bit.KEY, 8))
+                {
+                    status = e.bit.KEY;
+                    goto Label8;
+                }
+                game::debugPrint();
+                game::printInfo();
+                break;
             }
         }
         // 游戏分数界面
-        tft.fillRect(132, 220, 40, 15, backgroundColor);
-        TextSettings(infoColor, 2, 132, 220);
+        tft.fillRect(56, 280, 40, 15, backgroundColor);
+        TextSettings(infoColor, 1, 56, 280);
+        game::updateScore();
         tft.print(game::score);
+        delay(100);
+        game::score = 0;
+        if(game::getDataLength()==16)
+        {
+            TextSettings(warningColor, 2, 20, 160);
+            tft.println("You Lose!");
+            tft.fillScreen(backgroundColor);
+            goto StartGame;
+        }
     }
 Label8:;
     memset(game::gameData, 0, sizeof(game::gameData));
+    if(game::score > game::highestscore)
+    {
+        // 更新最高分数记录
+        game::highestscore = game::score;
+        EEPROM.write(5,game::highestscore);
+        game::score = 0;
+    }
 }
 
 /**************************6.主循环界面**************************/
@@ -1791,6 +1829,8 @@ void loop()
 
     else if(status == 8)
     {
+        // 清空游戏数组
+        memset(game::gameData, 0, sizeof(game::gameData));
         tft.fillScreen(backgroundColor);
         UI_8();
     }
