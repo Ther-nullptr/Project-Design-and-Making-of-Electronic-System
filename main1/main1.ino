@@ -12,7 +12,7 @@
 #include <Adafruit_ImageReader.h> // Image-reading functions
 #include <Adafruit_Keypad.h>
 #include <EEPROM.h>
-#include <TMRpcm.h>               //! 重要! 要在原库中加入 #define SDFAT(.h和.cpp)
+#include <TMRpcm.h> //! 重要! 要在原库中加入 #define SDFAT(.h和.cpp)
 #include <DHT.h>
 #include <ArduinoJson.h>
 #include <SoftwareSerial.h>
@@ -103,7 +103,7 @@ const int LM35low = 29;
 const int DHThigh = 37;
 const int DHTlow = 35;
 const int Clockhigh = 33;
-const int Clocklow = 31; 
+const int Clocklow = 31;
 
 // 按键模块定义
 const byte ROWS = 4;                         // rows
@@ -126,20 +126,19 @@ bool is_Wifi = false;  // 是否连接wifi
 
 // 设定系统颜色
 int colors[][4] = {
-    {ILI9341_BLACK,ILI9341_GREEN,ILI9341_RED,ILI9341_BLUE}, // default
-    {0x0000,0xafe5,0xffe0,0x07ff},                          // monokai
-    {0x6002,0x4cc0,0xc800,0x3334},                          // ubuntu
-    {0x0914,0x0400,0x8000,0x0010},                          // powershell
-    {0x314c,0x07f3,0xc49f,0xc786}};                         // cyberpunk
-uint8_t colorStatus = 1; // 默认为default
+    {ILI9341_BLACK, ILI9341_GREEN, ILI9341_RED, ILI9341_BLUE}, // default
+    {0x0000, 0xafe5, 0xffe0, 0x07ff},                          // monokai
+    {0x6002, 0x4cc0, 0xc800, 0x3334},                          // ubuntu
+    {0x0914, 0x0400, 0x8000, 0x0010},                          // powershell
+    {0x314c, 0x07f3, 0xc49f, 0xc786}};                         // cyberpunk
+uint8_t colorStatus = 1;                                       // 默认为default
 int backgroundColor = colors[0][0];
-int successColor = colors [0][1];
+int successColor = colors[0][1];
 int warningColor = colors[0][2];
 int infoColor = colors[0][3];
 
 // 设定设备状态的状态值
 volatile uint8_t status = 1;
-// const uint8_t idList[] = {1, 2, 3, 4, 5, 6};
 
 // 控制程序第一次是否清屏
 bool flag = true;
@@ -157,8 +156,8 @@ Adafruit_ImageReader reader(SD);                                                
 ImageReturnCode stat;                                                                           // 图片读取状态
 keypadEvent e;                                                                                  // 监测按键状态的对象
 TMRpcm tmrpcm;                                                                                  // 读取wav文件的对象
-DHT dht(dhtpin, DHTTYPE);                                                                       // 温湿度传感器对象    
-SoftwareSerial espSerial(rx,tx);                                                                // esp8266窗口对象
+DHT dht(dhtpin, DHTTYPE);                                                                       // 温湿度传感器对象
+SoftwareSerial espSerial(rx, tx);                                                               // esp8266窗口对象
 
 // 时间字符串
 char date[20], time[10], *week;
@@ -168,64 +167,60 @@ String json = "";
 uint8_t weatherStatus[10];
 
 // 文件设置
-char* modeNames[] = 
-{
-    "START",
-    "CLOCK",
-    "MUSIC",
-    "IMAGE",
-    "COLOR",
-    "WEATHER",
-    "ACSET"
-};
+char *modeNames[] =
+    {
+        "START",
+        "CLOCK",
+        "MUSIC",
+        "IMAGE",
+        "COLOR",
+        "WEATHER",
+        "ACSET",
+        "GAMES"};
 
 const int musicNum = 4;
 
-char* musicPrintNames[] = 
-{
-    "1.Bad Apple",
-    "2.Two Tigers",
-    "3.Lost Rivers",
-    "4.JOJO"
-};
+char *musicPrintNames[] =
+    {
+        "1.Bad Apple",
+        "2.Two Tigers",
+        "3.Lost Rivers",
+        "4.JOJO"};
 
-char* musicPlayNames[] =
-{
-    "badapple.wav",
-    "twotigers.wav",
-    "lostrivers.wav",
-    "jojo.wav"
-};
+char *musicPlayNames[] =
+    {
+        "badapple.wav",
+        "twotigers.wav",
+        "lostrivers.wav",
+        "jojo.wav"};
 
 const int imageFolderNum = 4;
 
-char* imagePrintNames[]=
-{
-    "1.sight",
-    "2.mnist",
-    "3.cyberpunk",
-    "4.comics"
+char *imagePrintNames[] =
+    {
+        "1.sight",
+        "2.mnist",
+        "3.cyberpunk",
+        "4.comics"};
+
+char *imagePlayNames[] =
+    {
+        "/sight/",
+        "/mnist/",
+        "/cyberpunk/",
+        "/comics/",
 };
 
-char* imagePlayNames[] = 
-{
-    "/sight/",
-    "/mnist/",
-    "/cyberpunk/",
-    "/comics/",
-};
+char *cityNames[] =
+    {
+        "beijing",
+        "xining",
+        "taiyuan",
+        "shanghai",
+        "chengdu"};
 
-char* cityNames [] = 
-{
-    "beijing",
-    "xining",
-    "taiyuan",
-    "shanghai",
-    "chengdu"
-};
-
-char* imageBaseName = "/weather/"; 
-const int UINum = 7;
+char *imageBaseName = "/weather/";
+const int UINum = 8;
 
 /**********************3.初始状态设定**********************/
 void setup()
@@ -262,18 +257,18 @@ void setup()
     digitalWrite(Clocklow, LOW);
 
     // !以下的内容在正式启用的时候一定要关掉
-    rtc.writeProtect(false);            //关闭写保护
-    rtc.halt(false);                    //清除时钟停止标志
+    rtc.writeProtect(false); //关闭写保护
+    rtc.halt(false);         //清除时钟停止标志
     //Time t(2021, 9, 2, 9, 0, 30, 5); //创建时间对象 最后参数位，为星期数据，周日为1，周一为2，周二为3，周四为5以此类推. 直接填写当前时间
     //rtc.time(t);                        //向DS1302设置时32*3间数据
 
     tft.begin();
     colorStatus = EEPROM.read(9);
-    if(colorStatus == CLEAR)
+    if (colorStatus == CLEAR)
     {
         colorStatus = 1;
     }
-    int *p = *(colors+colorStatus-1);
+    int *p = *(colors + colorStatus - 1);
     backgroundColor = p[0];
     successColor = p[1];
     warningColor = p[2];
@@ -320,7 +315,7 @@ bool willChangeStatus(uint8_t val, uint8_t id)
     }
 
     // 2.按键值与当前界面不同且合法
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < UINum; i++)
     {
         if (val == i + 1)
         {
@@ -463,10 +458,10 @@ void PrintBase(uint8_t id) // 打印每个界面的共性物
     tft.fillTriangle(10, 308, 10, 316, 6, 312, ILI9341_WHITE);
     tft.drawLine(0, 305, 240, 305, ILI9341_WHITE);
     TextSettings(ILI9341_WHITE, 1, 111, 308);
-    tft.print(String(id)+"/"+String(7));
+    tft.print(String(id) + "/" + String(UINum));
 
     // 画标题
-    if(id == 6)
+    if (id == 6)
     {
         TextSettings(ILI9341_WHITE, 3, 55, 20);
     }
@@ -511,7 +506,7 @@ void PlayPhoto(uint8_t id)
     String before;
     String after(".bmp");
     String filename;
-    before = imagePlayNames[id-1];
+    before = imagePlayNames[id - 1];
 
     uint16_t num = 1;
     while (1)
@@ -551,24 +546,319 @@ void PlayCityWeather(int id)
     PrintBase(6);
 
     TextSettings(ILI9341_WHITE, 2, 75, 60);
-    tft.println(cityNames[id-1]);
+    tft.println(cityNames[id - 1]);
 
-    stat = reader.drawBMP("temp.bmp",tft,50,220);
+    stat = reader.drawBMP("temp.bmp", tft, 50, 220);
     TextSettings(ILI9341_WHITE, 2, 65, 220);
     tft.print(F("TEMP:"));
     tft.print(weatherStatus[2 * id - 1]);
     tft.print(F(" C"));
 
-    String imageName = imageBaseName+String(weatherStatus[2*(id-1)])+"@2x.bmp";
+    String imageName = imageBaseName + String(weatherStatus[2 * (id - 1)]) + "@2x.bmp";
     stat = reader.drawBMP(imageName.c_str(), tft, 65, 90);
 
-    if(weatherStatus[2*(id-1)]>=10&&weatherStatus[2*(id-1)]<=18)
+    if (weatherStatus[2 * (id - 1)] >= 10 && weatherStatus[2 * (id - 1)] <= 18)
     {
-        TextSettings(warningColor,2,20,270);
+        TextSettings(warningColor, 2, 20, 270);
         tft.println("Take an umbrella!"); // suggestion when raining.
     }
 }
 
+// 存放游戏类函数的命名空间
+// 由于游戏类函数较为繁多，所以压缩为一个命名空间
+namespace game
+{
+    int gameData[4][4]; // 储存游戏的数据
+    int score = 0;      // 游戏分数
+    int highestscore;   // 最高分数
+
+    enum Direction
+    {
+        up = 1,
+        down,
+        left,
+        right
+    };
+
+    int getDataLength() // 统计当前格子中存在的方块数
+    {
+        int count = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (gameData[i][j] != 0)
+                {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    void setNum() // 放置新的方块
+    {
+        randomSeed(analogRead(0));
+        int random1 = int(2 * (random(1, 2)));              // 获取新生成的方块的值(2或4)
+        int random2 = int(random(0, 17 - getDataLength())); // 获取生成位置
+        // printf("%d",random2);
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (gameData[i][j] == 0)
+                {
+                    random2--;
+                    if (random2 == 0)
+                    {
+                        gameData[i][j] = random1;
+                    }
+                }
+            }
+        }
+    }
+
+    void getScore()
+    {
+        score = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                score += gameData[i][j];
+            }
+        }
+    }
+
+    void printInfo()
+    {
+        tft.setTextSize(1);
+        tft.setTextColor(ILI9341_WHITE);
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (gameData[i][j] != 0)
+                {
+                    tft.fillRect(50 + i * 40, 110 + i * 40, 10, 10, backgroundColor);
+                    tft.setCursor(50 + i * 40, 110 + i * 40);
+                    tft.print(gameData[i][j]);
+                }
+            }
+        }
+    }
+
+    void move(enum Direction direction)
+    {
+        switch (direction)
+        {
+        case UP:
+            for (int col = 0; col < 4; col++)
+            {
+                for (int row = 1; row < 4; row++)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = row - 1;
+                        while (tmp >= 0)
+                        {
+                            if (gameData[tmp][col] == 0)
+                            {
+                                gameData[tmp][col] = gameData[tmp + 1][col];
+                                gameData[tmp + 1][col] = 0;
+                            }
+                            tmp--;
+                        }
+                    }
+                }
+            }
+            for (int col = 0; col < 4; col++)
+            {
+                for (int row = 2; row >= 0; row--)
+                {
+                    if (gameData[row][col] != 0 && gameData[row][col] == gameData[row + 1][col])
+                    {
+                        gameData[row][col] *= 2;
+                        gameData[row + 1][col] = 0;
+                    }
+                }
+            }
+            for (int col = 0; col < 4; col++)
+            {
+                for (int row = 1; row < 4; row++)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = row - 1;
+                        while (tmp >= 0)
+                        {
+                            if (gameData[tmp][col] == 0)
+                            {
+                                gameData[tmp][col] = gameData[tmp + 1][col];
+                                gameData[tmp + 1][col] = 0;
+                            }
+                            tmp--;
+                        }
+                    }
+                }
+            }
+            break;
+        case DOWN:
+            for (int col = 0; col < 4; col++)
+            {
+                for (int row = 2; row >= 0; row--)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = row + 1;
+                        while (tmp < 4)
+                        {
+                            if (gameData[tmp][col] == 0)
+                            {
+                                gameData[tmp][col] = gameData[tmp - 1][col];
+                                gameData[tmp - 1][col] = 0;
+                            }
+                            tmp++;
+                        }
+                    }
+                }
+            }
+            for (int col = 0; col < 4; col++)
+            {
+                for (int row = 0; row < 3; row++)
+                {
+                    if (gameData[row + 1][col] != 0 && gameData[row + 1][col] == gameData[row][col])
+                    {
+                        gameData[row + 1][col] *= 2;
+                        gameData[row][col] = 0;
+                    }
+                }
+            }
+            for (int col = 0; col < 4; col++)
+            {
+                for (int row = 2; row >= 0; row--)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = row + 1;
+                        while (tmp < 4)
+                        {
+                            if (gameData[tmp][col] == 0)
+                            {
+                                gameData[tmp][col] = gameData[tmp - 1][col];
+                                gameData[tmp - 1][col] = 0;
+                            }
+                            tmp++;
+                        }
+                    }
+                }
+            }
+            break;
+        case LEFT:
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 1; col < 4; col++)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = col - 1;
+                        while (tmp >= 0)
+                        {
+                            if (gameData[row][tmp] == 0)
+                            {
+                                gameData[row][tmp] = gameData[row][tmp + 1];
+                                gameData[row][tmp + 1] = 0;
+                            }
+                            tmp--;
+                        }
+                    }
+                }
+            }
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 2; col >= 0; col--)
+                {
+                    if (gameData[row][col] != 0 && gameData[row][col] == gameData[row][col + 1])
+                    {
+                        gameData[row][col] *= 2;
+                        gameData[row][col + 1] = 0;
+                    }
+                }
+            }
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 1; col < 4; col++)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = col - 1;
+                        while (tmp >= 0)
+                        {
+                            if (gameData[row][tmp] == 0)
+                            {
+                                gameData[row][tmp] = gameData[row][tmp + 1];
+                                gameData[row][tmp + 1] = 0;
+                            }
+                            tmp--;
+                        }
+                    }
+                }
+            }
+            break;
+        case RIGHT:
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 2; col >= 0; col--)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = col + 1;
+                        while (tmp < 4)
+                        {
+                            if (gameData[row][tmp] == 0)
+                            {
+                                gameData[row][tmp] = gameData[row][tmp - 1];
+                                gameData[row][tmp - 1] = 0;
+                            }
+                            tmp++;
+                        }
+                    }
+                }
+            }
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 0; col < 3; col++)
+                {
+                    if (gameData[row][col + 1] != 0 && gameData[row][col + 1] == gameData[row][col])
+                    {
+                        gameData[row][col + 1] *= 2;
+                        gameData[row][col] = 0;
+                    }
+                }
+            }
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 2; col >= 0; col--)
+                {
+                    if (gameData[row][col] != 0)
+                    {
+                        int tmp = col + 1;
+                        while (tmp < 4)
+                        {
+                            if (gameData[row][tmp] == 0)
+                            {
+                                gameData[row][tmp] = gameData[row][tmp - 1];
+                                gameData[row][tmp - 1] = 0;
+                            }
+                            tmp++;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
 
 /**********************5.界面类函数**********************/
 void UI_1() // 一号界面,也是初始界面,显示时间
@@ -590,7 +880,6 @@ void UI_1() // 一号界面,也是初始界面,显示时间
     tft.print(F("humidity:"));
     tft.print(h);
     tft.print(F("%"));
-
 
     // 时刻检测时间，但不时刻在屏幕上刷新时间
     while (1)
@@ -622,13 +911,13 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         {
             TextSettings(warningColor, 3, 36, 230);
             tft.print("Alarming!");
-            
+
             if (!tmrpcm.isPlaying())
             {
                 tmrpcm.setVolume(volume);
-                tmrpcm.play(musicPlayNames[alarmMusic-1]);
+                tmrpcm.play(musicPlayNames[alarmMusic - 1]);
             }
-            
+
             // TODO 播放音乐
         }
         else if (tim.hr == alarmHour && tim.min == alarmMinute + 1)
@@ -672,7 +961,7 @@ void UI_1() // 一号界面,也是初始界面,显示时间
         {
             e = customKeypad.read();
             status = e.bit.KEY;
-            if(e.bit.KEY == BACK && e.bit.EVENT == KEY_JUST_PRESSED)
+            if (e.bit.KEY == BACK && e.bit.EVENT == KEY_JUST_PRESSED)
             {
                 tmrpcm.disable(); // 按下back键即可关闭闹钟
             }
@@ -876,7 +1165,7 @@ Label2:;
 void UI_3()
 {
     PrintBase(3);
-    TextSettings(infoColor,1,170,3);
+    TextSettings(infoColor, 1, 170, 3);
     tft.print(F("volume:"));
     tft.print(volume);
 
@@ -911,7 +1200,7 @@ void UI_3()
             {
                 PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
-                if (cursorPosition == musicNum+1)
+                if (cursorPosition == musicNum + 1)
                 {
                     cursorPosition = 1;
                 }
@@ -920,24 +1209,24 @@ void UI_3()
             else if (e.bit.KEY == LEFT && e.bit.EVENT == KEY_JUST_PRESSED) // 调节音量(但实际上也和音色有关)
             {
                 volume--;
-                if(volume == 0)
+                if (volume == 0)
                 {
                     volume = 1;
                 }
                 tmrpcm.volume(0);
-                tft.fillRect(212,1,W_1+1,H_1+1,backgroundColor);
-                TextSettings(infoColor,1,212,3);
+                tft.fillRect(212, 1, W_1 + 1, H_1 + 1, backgroundColor);
+                TextSettings(infoColor, 1, 212, 3);
                 tft.println(volume);
             }
             else if (e.bit.KEY == RIGHT && e.bit.EVENT == KEY_JUST_PRESSED)
             {
                 volume++;
-                if(volume == 8)
+                if (volume == 8)
                 {
                     volume = 7;
                 }
                 tmrpcm.volume(1);
-                tft.fillRect(212, 1, W_1+1, H_1+1, backgroundColor);
+                tft.fillRect(212, 1, W_1 + 1, H_1 + 1, backgroundColor);
                 TextSettings(infoColor, 1, 212, 3);
                 tft.println(volume);
             }
@@ -948,12 +1237,12 @@ void UI_3()
                 TextSettings(ILI9341_WHITE, 3, 20, 250);
                 tft.print("Loading...");
                 // TODO 播放音乐的操作
-                if(tmrpcm.isPlaying()) // 如果正在播放,
+                if (tmrpcm.isPlaying()) // 如果正在播放,
                 {
                     tmrpcm.disable(); // 就关闭当前音乐
                 }
                 tmrpcm.setVolume(volume);
-                tmrpcm.play(musicPlayNames[cursorPosition-1]);
+                tmrpcm.play(musicPlayNames[cursorPosition - 1]);
                 delay(3000);
                 tft.fillRect(15, 245, 210, 34, backgroundColor);
             }
@@ -971,7 +1260,6 @@ void UI_3()
         }
     }
 Label3:;
-    
 }
 
 // 播放视频的界面
@@ -981,10 +1269,10 @@ void UI_4()
 
     // 显示相册
     TextSettings(ILI9341_WHITE, 2, 20, 46);
-    for(int i = 0;i<4;i++)
+    for (int i = 0; i < 4; i++)
     {
         tft.println(imagePrintNames[i]);
-        tft.setCursor(20,66+i*20);
+        tft.setCursor(20, 66 + i * 20);
     }
 
     // 光标
@@ -1010,7 +1298,7 @@ void UI_4()
             {
                 PlayCursor(3, cursorPosition, backgroundColor);
                 cursorPosition++;
-                if (cursorPosition == imageFolderNum+1)
+                if (cursorPosition == imageFolderNum + 1)
                 {
                     cursorPosition = 1;
                 }
@@ -1056,14 +1344,15 @@ void UI_5()
     tft.println(F("4.Powershell"));
     tft.setCursor(20, 126);
     tft.println(F("5.Cyberpunk"));
-    tft.setCursor(20,170);
+    tft.setCursor(20, 170);
     tft.println(F("Now Theme:"));
-    tft.setCursor(180,170);
+    tft.setCursor(180, 170);
     tft.println(colorStatus);
 
     // 光标
     uint8_t cursorPosition = 1;
     PlayCursor(3, cursorPosition, ILI9341_WHITE);
+
     while (1)
     {
         customKeypad.tick();
@@ -1094,7 +1383,7 @@ void UI_5()
             {
                 PlayCursor(3, cursorPosition, successColor);
                 colorStatus = cursorPosition;
-                EEPROM.write(9,cursorPosition);
+                EEPROM.write(9, cursorPosition);
                 goto Label5;
             }
             else if (willChangeStatus(e.bit.KEY, 5))
@@ -1105,11 +1394,11 @@ void UI_5()
         }
     }
 Label5:;
-int *p = *(colors+colorStatus-1);
-backgroundColor = p[0];
-successColor = p[1];
-warningColor = p[2];
-infoColor = p[3];
+    int *p = *(colors + colorStatus - 1);
+    backgroundColor = p[0];
+    successColor = p[1];
+    warningColor = p[2];
+    infoColor = p[3];
 }
 
 void UI_6()
@@ -1150,13 +1439,13 @@ void UI_6()
             weatherStatus[8] = doc["8"];
             weatherStatus[9] = doc["9"];
         }
-        if(weatherStatus[1] == 0)
+        if (weatherStatus[1] == 0)
         {
             getStatus = false;
-            TextSettings(warningColor,3,20,160);
+            TextSettings(warningColor, 3, 20, 160);
             tft.println("loading...");
             customKeypad.tick();
-            if(customKeypad.available())
+            if (customKeypad.available())
             {
                 e = customKeypad.read();
                 if (willChangeStatus(e.bit.KEY, 6))
@@ -1169,9 +1458,9 @@ void UI_6()
         else
         {
             is_Wifi = true;
-            if(!getStatus)
+            if (!getStatus)
             {
-                tft.fillRect(20,160,200,25,backgroundColor); // 覆盖原有的提示
+                tft.fillRect(20, 160, 200, 25, backgroundColor); // 覆盖原有的提示
                 getStatus = true;
             }
             PlayCityWeather(cursorPosition);
@@ -1205,7 +1494,7 @@ void UI_6()
                 }
             }
         }
-        json="";
+        json = "";
     }
 
 Label6:;
@@ -1286,9 +1575,9 @@ void UI_7()
                                     tft.print(e.bit.KEY);
                                     tft.drawLine(i * 8 + 192, 90, i * 8 + 200, 90, backgroundColor);
                                     // 对温度合法性的判定，此处为便于管理，将温度设置为20~30 C
-                                    if(i == 1)
+                                    if (i == 1)
                                     {
-                                        if (tempArray[0] * 10 + tempArray[1] <20 || tempArray[0] * 10 + tempArray[1]> 30)
+                                        if (tempArray[0] * 10 + tempArray[1] < 20 || tempArray[0] * 10 + tempArray[1] > 30)
                                         {
                                             TextSettings(warningColor, 1, 20, 95);
                                             tft.print("illegal temp (must 20 ~ 30 c)");
@@ -1380,6 +1669,71 @@ void UI_7()
 Label7:;
 }
 
+void UI_8()
+{
+    PrintBase(8);
+    // 游戏说明
+    TextSettings(ILI9341_WHITE, 1, 20, 50);
+    tft.print(F("A: up"));
+    TextSettings(ILI9341_WHITE, 1, 20, 65);
+    tft.print(F("B: down"));
+    TextSettings(ILI9341_WHITE, 1, 20, 80);
+    tft.print(F("C: left"));
+    TextSettings(ILI9341_WHITE, 1, 20, 95);
+    tft.print(F("D: right"));
+
+    // 历史记录
+    game::highestscore = EEPROM.read(5);
+    if (game::highestscore == CLEAR)
+    {
+        game::highestscore = 0;
+    }
+    TextSettings(infoColor, 2, 20, 220);
+    tft.print(F("score: "));
+    TextSettings(successColor, 2, 20, 250);
+    tft.print(F("highest score: "));
+    tft.print(game::highestscore);
+
+    // 游戏运行界面
+    tft.drawRect(40, 100, 160, 160, ILI9341_WHITE);
+    while (1)
+    {
+        game::printInfo();
+        customKeypad.tick();
+        if (customKeypad.available())
+        {
+            e = customKeypad.read();
+            if (e.bit.KEY == UP && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                game::move(game::Direction::up);
+            }
+            else if (e.bit.KEY == DOWN && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                game::move(game::Direction::down);
+            }
+            else if (e.bit.KEY == LEFT && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                game::move(game::Direction::left);
+            }
+            else if (e.bit.KEY == RIGHT && e.bit.EVENT == KEY_JUST_PRESSED)
+            {
+                game::move(game::Direction::right);
+            }
+            else if (willChangeStatus(e.bit.KEY, 8))
+            {
+                status = e.bit.KEY;
+                goto Label8;
+            }
+        }
+        // 游戏分数界面
+        tft.fillRect(132, 220, 40, 15, backgroundColor);
+        TextSettings(infoColor, 2, 132, 220);
+        tft.print(game::score);
+    }
+Label8:;
+    memset(game::gameData, 0, sizeof(game::gameData));
+}
+
 /**************************6.主循环界面**************************/
 void loop()
 {
@@ -1393,7 +1747,7 @@ void loop()
         Time tim = rtc.time();
         PrintTime(tim);
         UI_1();
-        if(tmrpcm.isPlaying())
+        if (tmrpcm.isPlaying())
         {
             tmrpcm.disable();
         }
@@ -1417,22 +1771,28 @@ void loop()
         UI_4();
     }
 
-    else if(status == 5)
+    else if (status == 5)
     {
         tft.fillScreen(backgroundColor);
         UI_5();
     }
 
-    else if(status == 6)
+    else if (status == 6)
     {
         tft.fillScreen(backgroundColor);
         UI_6();
     }
 
-    else if(status == 7)
+    else if (status == 7)
     {
         tft.fillScreen(backgroundColor);
         UI_7();
+    }
+
+    else if(status == 8)
+    {
+        tft.fillScreen(backgroundColor);
+        UI_8();
     }
 
     else
