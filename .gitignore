@@ -3,5 +3,5 @@
 reference.md
 Report/
 !Report/report.pdf
-!/Rreport/*.jpg
-!/Rreport/*.png
+!/Report/*.jpg
+!/Report/*.png

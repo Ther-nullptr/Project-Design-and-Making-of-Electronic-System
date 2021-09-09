@@ -517,22 +517,28 @@ void PlayPhoto(uint8_t id)
         {
             break;
         }
-        // TODO 此处应有更好的优化方法:把esc设置为中断
-        customKeypad.tick();
-        if (customKeypad.available())
+        // 由于图片的播放不能很好地支持多线程，所以采取了这样一种策略：每播放一张图片后，就进入5s中的监听状态
+        // 如果在5s之内按下esc键，就结束所有播放；否则，在5s之后进行下一张图片的播放
+        int phototime = millis();
+        while(1)
         {
-            e = customKeypad.read();
-            if (e.bit.KEY == BACK && e.bit.EVENT == KEY_JUST_PRESSED)
+            customKeypad.tick();
+            if (customKeypad.available())
+            {
+                e = customKeypad.read();
+                if (e.bit.KEY == BACK && e.bit.EVENT == KEY_JUST_PRESSED)
+                {
+                    goto EndPlay;
+                }
+            }
+            if(millis()-phototime>5000)
             {
                 break;
             }
         }
-        else
-        {
-            delay(5000);
-        }
         num++;
     }
+EndPlay:;
 }
 
 /**************************************************************************/
@@ -665,9 +671,9 @@ namespace game
 
     void debugPrint()
     {
-        for(int i = 0;i<4;i++)
+        for (int i = 0; i < 4; i++)
         {
-            for(int j = 0;j<4;j++)
+            for (int j = 0; j < 4; j++)
             {
                 Serial.print(gameData[i][j]);
                 Serial.print('\t');
@@ -1265,7 +1271,6 @@ void UI_3()
                 tft.drawRect(15, 245, 210, 34, successColor);
                 TextSettings(ILI9341_WHITE, 3, 20, 250);
                 tft.print("Loading...");
-                // TODO 播放音乐的操作
                 if (tmrpcm.isPlaying()) // 如果正在播放,
                 {
                     tmrpcm.disable(); // 就关闭当前音乐
@@ -1763,7 +1768,7 @@ StartGame:;
             }
         }
         // 游戏分数界面
-        tft.fillRect(56, 280, 40, 15, backgroundColor);
+        tft.fillRect(56, 280, 40, 10, backgroundColor);
         TextSettings(infoColor, 1, 56, 280);
         game::updateScore();
         tft.print(game::score);
@@ -1774,6 +1779,7 @@ StartGame:;
             TextSettings(warningColor, 2, 20, 160);
             tft.println("You Lose!");
             tft.fillScreen(backgroundColor);
+            memset(game::gameData, 0, sizeof(game::gameData));
             goto StartGame;
         }
     }
